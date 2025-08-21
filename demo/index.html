@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Math Input Demo</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/mathlive/dist/mathlive.min.js"></script>
+    <style>
+      .keyboard button { margin: 0 4px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import { MathInput } from '../src/MathInput.js';
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(React.createElement(MathInput));
+    </script>
+  </body>
+</html>
