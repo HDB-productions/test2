@@ -1,0 +1,9 @@
+{
+  "name": "math-input-demo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "npx serve demo",
+    "test": "echo 'No tests'"
+  }
+}
