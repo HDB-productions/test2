@@ -4,11 +4,23 @@
     <meta charset="utf-8" />
     <title>untitled</title>
     <script defer src="https://cdn.jsdelivr.net/npm/mathlive"></script>
+    <style>
+      /* Global für das Variant-Panel */
+      body {
+        /* Breite der Varianten-Keys erhöhen → weniger Spalten */
+        --variant-keycap-length: 72px; /* anpassen bis genau 2 Spalten rauskommen */
+        --variant-keycap-font-size: 16px; /* optional für gute Lesbarkeit */
+        --variant-keycap-aside-font-size: 12px;
+      }
+    </style>
   </head>
 
   <body>
-    <math-field id="mf">x=\frac{-b\pm \sqrt{b^2-4ac}}{2a}</math-field>
+    <math-field readonly id="mf"
+      >\placeholder[answer]{}=\frac{-b\pm \sqrt{b^2-4ac}}{2a}</math-field
+    >
     <script>
+      const mf = document.getElementById("mf");
       mf.addEventListener("input", (evt) =>
         console.log("Value:", evt.target.value)
       );
