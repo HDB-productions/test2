@@ -18,8 +18,16 @@
             label: "123",
             rows: [
               [
-                "x",
-                "y",
+                {
+                  latex: "a",
+                  variants: ["a", "b", "c", "A", "B", "C"],
+                  aside: "A B C",
+                },
+                {
+                  latex: "x",
+                  variants: ["x", "y", "z", "t", "X", "Y", "Z", "T"],
+                  aside: "X Y Z T",
+                },
                 { label: "[separator]", width: 0.5 },
                 "[7]",
                 "[8]",
@@ -29,11 +37,17 @@
               ],
               [
                 {
-                  latex: "a",
-                  variants: ["A", "\\alpha"],
-                  aside: ["A", "\\alpha"],
+                  latex: "\\alpha",
+                  variants: [
+                    "\\alpha",
+                    "\\beta",
+                    "\\gamma",
+                    "\\delta",
+                    "\\varepsilon",
+                  ],
+                  aside: "α β γ δ ε",
                 },
-                "b",
+                "\\pi",
                 { label: "[separator]", width: 0.5 },
                 "[4]",
                 "[5]",
