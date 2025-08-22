@@ -1,17 +1,47 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
   <head>
     <meta charset="utf-8" />
-    <title>untitled</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>MathLive – Tastatur im iFrame</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/mathlive/dist/mathlive-static.css"
+    />
     <script defer src="https://cdn.jsdelivr.net/npm/mathlive"></script>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      /* Hier rendert die Tastatur hinein */
+      #vk {
+        position: relative;
+        width: 100%;
+        min-height: 360px;
+      }
+      /* Falls etwas sie überdeckt: */
+      body {
+        --keyboard-zindex: 3000;
+      }
+    </style>
   </head>
-
   <body>
-    <math-field id="mf">x=\frac{-b\pm \sqrt{b^2-4ac}}{2a}</math-field>
+    <!-- Dein Mathfield -->
+    <math-field id="mf" math-virtual-keyboard-policy="sandboxed">
+      x=\frac{-b\pm \sqrt{b^2-4ac}}{2a}
+    </math-field>
+
+    <!-- Container für die virtuelle Tastatur -->
+    <div id="vk"></div>
+
     <script>
-      mf.addEventListener("input", (evt) =>
-        console.log("Value:", evt.target.value)
-      );
+      window.addEventListener("DOMContentLoaded", () => {
+        const vk = window.mathVirtualKeyboard;
+        // WICHTIG: Im iFrame einen lokalen Container setzen!
+        vk.container = document.getElementById("vk");
+      });
     </script>
   </body>
 </html>
