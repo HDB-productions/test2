@@ -1,34 +1,42 @@
 <!DOCTYPE html>
-<html lang="de">
+<html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>MathLive Tastatur</title>
+    <title>untitled</title>
     <script defer src="https://cdn.jsdelivr.net/npm/mathlive"></script>
   </head>
+
   <body>
-    <!-- Mathfield: Policy auf 'manual', damit wir die Tastatur selbst steuern -->
-    <math-field id="mf" math-virtual-keyboard-policy="manual">
-      x=\frac{-b\pm \sqrt{b^2-4ac}}{2a}
-    </math-field>
-
+    <math-field id="mf">x=\frac{-b\pm \sqrt{b^2-4ac}}{2a}</math-field>
     <script>
-      window.addEventListener("DOMContentLoaded", () => {
-        const mf = document.getElementById("mf");
-        // Policy zur Sicherheit auch programmgesteuert setzen
-        mf.mathVirtualKeyboardPolicy = "manual";
-        // Tastatur anzeigen (funktioniert auch am Desktop)
-        mathVirtualKeyboard.show();
-        // Fokus geben, damit Eingaben ein Ziel haben
-        mf.focus();
-
-        // Optional: Verhindern, dass sie wieder zugeht (z.B. in der Preview)
-        mathVirtualKeyboard.addEventListener(
-          "before-virtual-keyboard-toggle",
-          (e) => {
-            if (!e.detail.visible) e.preventDefault();
-          }
-        );
+      mf.addEventListener("input", (evt) =>
+        console.log("Value:", evt.target.value)
+      );
+      document.querySelector("math-field").addEventListener("focus", () => {
+        mathVirtualKeyboard.layouts = {
+          layers: [
+            {
+              rows: [
+                [
+                  "+",
+                  "-",
+                  "\\times",
+                  "\\frac{#@}{#?}",
+                  "=",
+                  ".",
+                  "(",
+                  ")",
+                  "\\sqrt{#0}",
+                  "#@^{#?}",
+                ],
+              ],
+            },
+            {
+              rows: [["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]],
+            },
+          ],
+        };
+        mathVirtualKeyboard.visible = true;
       });
     </script>
   </body>
