@@ -3,47 +3,291 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Vokabeltrainer – Canvas</title>
+    <title>Vokabeltrainer</title>
     <style>
-      html,
+      :root {
+        --bg: #f6f7fb;
+        --fg: #111827;
+        --muted: #1764e9;
+        --primary: #2563eb;
+        --primary-contrast: #ffffff;
+        --ok: #10b981;
+        --bad: #ef4444;
+        --card: #ffffff;
+        --border: #8daded;
+      }
+      * {
+        box-sizing: border-box;
+      }
       body {
         margin: 0;
-        height: 100%;
-        background: #f6f7fb;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
+          Arial;
+        color: var(--fg);
+        background: var(--bg);
       }
-      canvas {
-        display: block;
-        width: 100vw;
-        height: 100vh;
-      }
-      /* Unsichtbares Eingabefeld für iOS/Android, damit die Tastatur erscheint */
-      #hiddenInput {
-        position: absolute;
-        opacity: 0;
-        left: 0;
+      header {
+        position: sticky;
         top: 0;
-        width: 1px;
-        height: 1px;
+        background: #fff;
+        border-bottom: 1px solid var(--border);
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        z-index: 10;
+      }
+      header h1 {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0 8px 0 0;
+      }
+      .spacer {
+        flex: 1;
+      }
+      .btn {
+        appearance: none;
         border: 0;
-        padding: 0;
-        margin: 0;
+        background: var(--border);
+        color: var(--fg);
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .btn.primary {
+        background: var(--primary);
+        color: var(--primary-contrast);
+      }
+      .btn.success {
+        background: var(--ok);
+        color: #fff;
+      }
+      .btn.danger {
+        background: var(--bad);
+        color: #fff;
+      }
+      .btn.outline {
+        background: transparent;
+        border: 2px solid var(--border);
+      }
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .tabs .btn {
+        background: var(--border);
+      }
+      .tabs .btn.active {
+        background: var(--primary);
+        color: #fff;
+      }
+      main {
+        max-width: 840px;
+        margin: 16px auto;
+        padding: 0 12px 24px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+      }
+      .title {
+        color: var(--muted);
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 8px;
+      }
+      .big {
+        font-weight: 700;
+        font-size: 28px;
+        line-height: 1.3;
+        margin: 8px 0;
+      }
+      .med {
+        font-weight: 600;
+        font-size: 22px;
+        line-height: 1.35;
+        margin: 6px 0;
+        color: #8398b3;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .row.right {
+        justify-content: flex-end;
+      }
+      .gap-12 {
+        gap: 12px;
+      }
+      .mt-8 {
+        margin-top: 8px;
+      }
+      .mt-12 {
+        margin-top: 12px;
+      }
+      .mt-16 {
+        margin-top: 16px;
+      }
+      .mt-20 {
+        margin-top: 20px;
+      }
+      .mt-24 {
+        margin-top: 24px;
+      }
+      .choices {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .choice {
+        padding: 12px;
+        border: 2px solid var(--border);
+        border-radius: 10px;
+        background: #fff;
+        cursor: pointer;
+        text-align: center;
+        font-weight: 600;
+      }
+      .choice.correct {
+        border-color: var(--ok);
+        background: #ecfdf5;
+      }
+      .choice.wrong {
+        border-color: var(--bad);
+        background: #fef2f2;
+      }
+      .progress {
+        font-weight: 600;
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 8px;
+      }
+      .results {
+        text-align: center;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 12px 14px;
+        border: 2px solid var(--primary);
+        border-radius: 10px;
+        font-size: 18px;
+        font-weight: 600;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #0b1220;
+          color: #e5e7eb;
+        }
+        header {
+          background: #0f172a;
+          border-bottom-color: #1f2937;
+        }
+        .card {
+          background: #0f172a;
+          border-color: #1f2937;
+        }
+        .btn {
+          background: #1f2937;
+          color: #e5e7eb;
+        }
+        .btn.outline {
+          border-color: #1f2937;
+        }
+        input[type="text"] {
+          background: #0f172a;
+          color: #e5e7eb;
+          border-color: #334155;
+        }
       }
     </style>
   </head>
   <body>
-    <input
-      id="hiddenInput"
-      type="text"
-      autocapitalize="off"
-      autocomplete="off"
-      autocorrect="off"
-      spellcheck="false"
-    />
-    <canvas id="c"></canvas>
+    <header>
+      <h1>Vokabeltrainer</h1>
+      <div class="tabs row">
+        <button id="tab-learn" class="btn">Lernen</button>
+        <button id="tab-practice" class="btn">Üben</button>
+        <button id="tab-test" class="btn">Test</button>
+      </div>
+      <div class="spacer"></div>
+      <button id="btn-reshuffle" class="btn outline">⟲ Neu mischen</button>
+    </header>
+    <main>
+      <section id="view-learn" class="view">
+        <div class="card">
+          <div class="title">Vokabel</div>
+          <div id="learn-de" class="big"></div>
+          <div id="learn-en" class="med"></div>
+          <div class="row right mt-16">
+            <button id="btn-learn-next" class="btn primary">Weiter</button>
+          </div>
+          <div id="learn-finished" class="results mt-16" style="display: none">
+            <div class="med" style="margin-bottom: 10px">
+              Lernrunde abgeschlossen!
+            </div>
+            <button id="btn-learn-restart" class="btn primary">
+              Nochmal lernen
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-practice" class="view" style="display: none">
+        <div class="card">
+          <div class="title" id="practice-dir"></div>
+          <div id="practice-prompt" class="big"></div>
+          <div id="practice-choices" class="choices"></div>
+          <div
+            id="practice-finished"
+            class="results mt-16"
+            style="display: none"
+          >
+            <div class="med" id="practice-score"></div>
+            <button id="btn-practice-restart" class="btn primary mt-12">
+              Nochmal starten
+            </button>
+          </div>
+          <div class="progress" id="practice-progress"></div>
+        </div>
+      </section>
+
+      <section id="view-test" class="view" style="display: none">
+        <div class="card">
+          <div class="title">Schreibe die englische Übersetzung (de → en)</div>
+          <div id="test-prompt" class="big"></div>
+          <input
+            id="test-input"
+            type="text"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            class="mt-12"
+          />
+          <div class="row right mt-12 gap-12">
+            <button id="btn-test-check" class="btn primary">Prüfen</button>
+          </div>
+          <div id="test-feedback" class="med mt-12"></div>
+          <div id="test-finished" class="results mt-16" style="display: none">
+            <div class="med" id="test-score"></div>
+            <button id="btn-test-restart" class="btn primary mt-12">
+              Nochmal starten
+            </button>
+          </div>
+          <div class="progress" id="test-progress"></div>
+        </div>
+      </section>
+    </main>
+
     <script>
-      // ========================
-      // Daten – Liste aus deinen Fotos (de/en)
-      // ========================
+      // Daten
       const VOCAB = [
         { de: "Hallo", en: "Hello" },
         { de: "Ich heiße …", en: "My name is …" },
@@ -96,716 +340,272 @@
         { de: "reden mit", en: "to talk to" },
       ];
 
-      // ========================
-      // Zufalls-/Queue-Logik
-      // ========================
-
-      const canvas = document.getElementById("c");
-      const ctx = canvas.getContext("2d");
-      const hiddenInput = document.getElementById("hiddenInput");
-
-      // Layout/State
-      let mode = 1; // 1=Lernen, 2=Üben (Multiple Choice), 3=Test (Tippen)
-      let hitRegions = []; // Klickbare Bereiche pro Frame
-
-      // Lernen
-      let learnIndices = [];
-      let learnPos = 0;
-
-      // Üben (MC)
-      let practiceQueue = [];
-      let currentPractice = null; // {i, dir, tries}
-      let practiceChoices = []; // Strings (3 Optionen)
-      let practiceCorrectIndex = -1;
-      let practiceFeedback = null; // {chosen, correct, when}
-      let practiceStats = { asked: 0, correct: 0, wrong: 0, finished: false };
-
-      // Test (Tippen: de -> en)
-      let testQueue = [];
-      let currentTest = null; // {i, tries}
-      let typed = "";
-      let testFeedback = null; // {correct, expected, given, when}
-      let testStats = { asked: 0, correct: 0, wrong: 0, finished: false };
-
-      // ========================
-      // Canvas Helpers + Textumbruch
-      // ========================
-
-      function resize() {
-        const dpr = window.devicePixelRatio || 1;
-        canvas.width = Math.floor(window.innerWidth * dpr);
-        canvas.height = Math.floor(window.innerHeight * dpr);
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        render();
-      }
-      window.addEventListener("resize", resize);
-
-      function shuffle(arr) {
-        for (let i = arr.length - 1; i > 0; i--) {
+      // Utils
+      function shuffle(a) {
+        for (let i = a.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
-          [arr[i], arr[j]] = [arr[j], arr[i]];
+          [a[i], a[j]] = [a[j], a[i]];
         }
-        return arr;
+        return a;
       }
-      function textWidth(s, font) {
-        ctx.save();
-        if (font) ctx.font = font;
-        const w = ctx.measureText(s).width;
-        ctx.restore();
-        return w;
-      }
-      function drawRoundedRect(x, y, w, h, r) {
-        const rr = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rr, y);
-        ctx.arcTo(x + w, y, x + w, y + h, rr);
-        ctx.arcTo(x + w, y + h, x, y + h, rr);
-        ctx.arcTo(x, y + h, x, y, rr);
-        ctx.arcTo(x, y, x + w, y, rr);
-        ctx.closePath();
-      }
-      function registerHitRegion(rect, handler) {
-        hitRegions.push({
-          x: rect.x,
-          y: rect.y,
-          w: rect.w,
-          h: rect.h,
-          onClick: handler,
-        });
-      }
-      function pointInRect(px, py, rect) {
-        return (
-          px >= rect.x &&
-          px <= rect.x + rect.w &&
-          py >= rect.y &&
-          py <= rect.y + rect.h
-        );
+      function splitAlts(str) {
+        return (str || "")
+          .split(";")
+          .map((s) => s.trim())
+          .filter(Boolean);
       }
 
-      // --- Text Wrap Utilities ---
-      function wrapLines(text, maxWidth, font) {
-        ctx.save();
-        ctx.font = font;
-        const words = (text + "").split(/\s+/);
-        const lines = [];
-        let line = "";
-        for (let n = 0; n < words.length; n++) {
-          const test = line ? line + " " + words[n] : words[n];
-          const w = ctx.measureText(test).width;
-          if (w > maxWidth && line) {
-            lines.push(line);
-            line = words[n];
-          } else {
-            line = test;
-          }
+      // Tabs/Mode
+      const tabLearn = document.getElementById("tab-learn");
+      const tabPractice = document.getElementById("tab-practice");
+      const tabTest = document.getElementById("tab-test");
+      const btnReshuffle = document.getElementById("btn-reshuffle");
+      const views = {
+        learn: document.getElementById("view-learn"),
+        practice: document.getElementById("view-practice"),
+        test: document.getElementById("view-test"),
+      };
+      let mode = "learn";
+      function setMode(m) {
+        mode = m;
+        for (const k of Object.keys(views)) {
+          views[k].style.display = k === m ? "block" : "none";
         }
-        if (line) lines.push(line);
-        ctx.restore();
-        return lines;
-      }
-      function drawLinesCentered(
-        lines,
-        centerX,
-        startY,
-        lineHeight,
-        font,
-        color = "#111827"
-      ) {
-        ctx.save();
-        ctx.font = font;
-        ctx.fillStyle = color;
-        let y = startY;
-        for (const ln of lines) {
-          const w = ctx.measureText(ln).width;
-          ctx.fillText(ln, centerX - w / 2, y);
-          y += lineHeight;
-        }
-        ctx.restore();
+        tabLearn.classList.toggle("active", m === "learn");
+        tabPractice.classList.toggle("active", m === "practice");
+        tabTest.classList.toggle("active", m === "test");
       }
 
-      // ========================
-      // Top-Bar
-      // ========================
-      canvas.addEventListener("click", (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        for (let r of hitRegions) {
-          if (pointInRect(x, y, r)) {
-            r.onClick(x, y);
-            return;
-          }
-        }
+      tabLearn.addEventListener("click", () => {
+        setMode("learn");
+        startLearn();
+      });
+      tabPractice.addEventListener("click", () => {
+        setMode("practice");
+        startPractice();
+      });
+      tabTest.addEventListener("click", () => {
+        setMode("test");
+        startTest();
+      });
+      btnReshuffle.addEventListener("click", () => {
+        if (mode === "learn") startLearn();
+        else if (mode === "practice") startPractice();
+        else startTest();
       });
 
-      function drawTopBar(cw, ch) {
-        hitRegions = [];
-        const barH = 56;
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, cw, barH);
-        ctx.strokeStyle = "#e5e7eb";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(0, barH + 0.5);
-        ctx.lineTo(cw, barH + 0.5);
-        ctx.stroke();
-
-        ctx.fillStyle = "#111827";
-        ctx.font =
-          "600 18px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-        ctx.fillText("Vokabeltrainer", 16, 34);
-
-        const btnW = 100,
-          btnH = 32,
-          gap = 8;
-        const startX = 170;
-        const labels = [
-          { label: "Lernen", m: 1 },
-          { label: "Üben", m: 2 },
-          { label: "Test", m: 3 },
-        ];
-        let x = startX;
-        for (let b of labels) {
-          const isActive = mode === b.m;
-          const r = { x, y: 12, w: btnW, h: btnH };
-          drawRoundedRect(r.x, r.y, r.w, r.h, 8);
-          ctx.fillStyle = isActive ? "#2563eb" : "#e5e7eb";
-          ctx.fill();
-          ctx.fillStyle = isActive ? "#ffffff" : "#111827";
-          ctx.font =
-            "600 14px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-          const tw = textWidth(b.label);
-          ctx.fillText(b.label, r.x + (r.w - tw) / 2, r.y + 21);
-          registerHitRegion(r, () => setMode(b.m));
-          x += btnW + gap;
-        }
-
-        const resetLabel = "⟲ Neu mischen";
-        const resetW = Math.max(150, textWidth(resetLabel) + 24);
-        const resetRect = { x: cw - resetW - 16, y: 12, w: resetW, h: 32 };
-        drawRoundedRect(resetRect.x, resetRect.y, resetRect.w, resetRect.h, 8);
-        ctx.fillStyle = "#10b981";
-        ctx.fill();
-        ctx.fillStyle = "#ffffff";
-        ctx.font =
-          "600 14px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-        const ttw = textWidth(resetLabel);
-        ctx.fillText(
-          resetLabel,
-          resetRect.x + (resetRect.w - ttw) / 2,
-          resetRect.y + 21
-        );
-        registerHitRegion(resetRect, () => reshuffleCurrentMode());
-
-        return barH;
-      }
-
-      // ========================
-      // Lernmodus (mit Umbruch & Zentrierung)
-      // ========================
+      // Learn
+      const elLearnDE = document.getElementById("learn-de");
+      const elLearnEN = document.getElementById("learn-en");
+      const elLearnNext = document.getElementById("btn-learn-next");
+      const elLearnFinished = document.getElementById("learn-finished");
+      const elLearnRestart = document.getElementById("btn-learn-restart");
+      let learnOrder = [],
+        learnIndex = 0;
       function startLearn() {
-        learnIndices = [...Array(VOCAB.length).keys()];
-        shuffle(learnIndices);
-        learnPos = 0;
+        learnOrder = shuffle([...Array(VOCAB.length).keys()]);
+        learnIndex = 0;
+        renderLearn();
       }
-      function drawLearn(cw, ch, top) {
-        const areaY = top + 24;
-        const centerX = cw / 2;
-        const cardW = Math.min(620, cw - 40);
-        const cardH = 240;
-        const cardX = (cw - cardW) / 2;
-        const cardY = areaY + 40;
-
-        if (learnPos >= learnIndices.length) {
-          ctx.fillStyle = "#111827";
-          ctx.font =
-            "600 20px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-          ctx.fillText(
-            "Lernrunde abgeschlossen!",
-            centerX - textWidth("Lernrunde abgeschlossen!") / 2,
-            cardY - 8
-          );
-          drawActionButton(
-            centerX - 90,
-            cardY + 0,
-            180,
-            44,
-            "Nochmal lernen",
-            () => startLearn()
-          );
+      function renderLearn() {
+        if (learnIndex >= learnOrder.length) {
+          elLearnDE.textContent = "";
+          elLearnEN.textContent = "";
+          elLearnNext.style.display = "none";
+          elLearnFinished.style.display = "block";
           return;
         }
-
-        const idx = learnIndices[learnPos];
-        const v = VOCAB[idx];
-
-        drawRoundedRect(cardX, cardY, cardW, cardH, 16);
-        ctx.fillStyle = "#ffffff";
-        ctx.fill();
-        ctx.strokeStyle = "#e5e7eb";
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        ctx.fillStyle = "#6b7280";
-        ctx.font =
-          "600 16px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-        ctx.fillText("Vokabel", cardX + 24, cardY + 34);
-
-        const innerW = cardW - 48;
-        const fontDE =
-          "700 34px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-        const fontEN =
-          "600 30px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-        const linesDE = wrapLines(v.de, innerW, fontDE);
-        const linesEN = wrapLines(v.en, innerW, fontEN);
-        const lhDE = 42,
-          lhEN = 38,
-          gap = 12;
-        const totalH = linesDE.length * lhDE + gap + linesEN.length * lhEN;
-        const startY = cardY + (cardH - totalH) / 2 + 20;
-
-        drawLinesCentered(linesDE, centerX, startY, lhDE, fontDE, "#111827");
-        drawLinesCentered(
-          linesEN,
-          centerX,
-          startY + linesDE.length * lhDE + gap,
-          lhEN,
-          fontEN,
-          "#1f2937"
-        );
-
-        drawActionButton(
-          centerX - 70,
-          cardY + cardH + 24,
-          140,
-          44,
-          "Weiter",
-          () => {
-            learnPos++;
-            renderSoon();
-          }
-        );
+        const v = VOCAB[learnOrder[learnIndex]];
+        elLearnDE.textContent = v.de;
+        elLearnEN.textContent = v.en;
+        elLearnFinished.style.display = "none";
+        elLearnNext.style.display = "inline-block";
       }
+      elLearnNext.addEventListener("click", () => {
+        learnIndex++;
+        renderLearn();
+      });
+      elLearnRestart.addEventListener("click", () => {
+        startLearn();
+      });
 
-      // ========================
-      // Üben (Multiple-Choice) – de<->en (mit Umbruch)
-      // ========================
+      // Practice (Multiple Choice)
+      const elPracticeDir = document.getElementById("practice-dir");
+      const elPracticePrompt = document.getElementById("practice-prompt");
+      const elPracticeChoices = document.getElementById("practice-choices");
+      const elPracticeFinished = document.getElementById("practice-finished");
+      const elPracticeScore = document.getElementById("practice-score");
+      const elPracticeRestart = document.getElementById("btn-practice-restart");
+      const elPracticeProgress = document.getElementById("practice-progress");
+      let pracQueue = [],
+        pracCurrent = null,
+        pracChoices = [],
+        pracCorrect = -1,
+        pracStats = { asked: 0, correct: 0, wrong: 0, finished: false };
       function startPractice() {
-        practiceStats = { asked: 0, correct: 0, wrong: 0, finished: false };
+        pracStats = { asked: 0, correct: 0, wrong: 0, finished: false };
         const idxs = [...Array(VOCAB.length).keys()];
         shuffle(idxs);
-        practiceQueue = idxs.map((i) => ({
+        pracQueue = idxs.map((i) => ({
           i,
           dir: Math.random() < 0.5 ? "de2en" : "en2de",
-          tries: 0,
         }));
         nextPractice();
       }
       function nextPractice() {
-        practiceFeedback = null;
-        if (practiceQueue.length === 0) {
-          practiceStats.finished = true;
-          renderSoon();
+        if (pracQueue.length === 0) {
+          pracStats.finished = true;
+          renderPractice();
           return;
         }
-        currentPractice = practiceQueue.shift();
-        const v = VOCAB[currentPractice.i];
-        const dir = currentPractice.dir;
-
-        let correct, pool;
-        if (dir === "de2en") {
-          correct = v.en;
-          pool = VOCAB.map((x) => x.en);
-        } else {
-          correct = v.de;
-          pool = VOCAB.map((x) => x.de);
-        }
-
+        pracCurrent = pracQueue.shift();
+        const v = VOCAB[pracCurrent.i];
+        const dir = pracCurrent.dir;
+        elPracticeDir.textContent =
+          dir === "de2en" ? "Übersetze (de → en)" : "Übersetze (en → de)";
+        const correct = dir === "de2en" ? v.en : v.de;
+        const pool =
+          dir === "de2en" ? VOCAB.map((x) => x.en) : VOCAB.map((x) => x.de);
         const options = new Set([correct]);
         while (options.size < 3 && pool.length > 1) {
           const cand = pool[Math.floor(Math.random() * pool.length)];
           if (cand !== correct) options.add(cand);
         }
-        practiceChoices = shuffle(Array.from(options));
-        practiceCorrectIndex = practiceChoices.indexOf(correct);
-        practiceStats.asked++;
+        pracChoices = shuffle(Array.from(options));
+        pracCorrect = pracChoices.indexOf(correct);
+        pracStats.asked++;
+        renderPractice();
       }
-      function answerPractice(choiceIndex) {
-        if (practiceFeedback) return;
-        const isCorrect = choiceIndex === practiceCorrectIndex;
-        if (isCorrect) practiceStats.correct++;
-        else {
-          practiceStats.wrong++;
-          currentPractice.tries++;
-          const offset = Math.min(
-            2 + Math.floor(Math.random() * 3),
-            practiceQueue.length
-          );
-          practiceQueue.splice(offset, 0, currentPractice);
-        }
-        practiceFeedback = {
-          chosen: choiceIndex,
-          correct: practiceCorrectIndex,
-          when: performance.now(),
-        };
-        setTimeout(() => {
-          nextPractice();
-          renderSoon();
-        }, 750);
-        renderSoon();
+      function answerPractice(idx) {
+        if (pracStats.finished) return;
+        const ok = idx === pracCorrect;
+        if (ok) pracStats.correct++;
+        else pracStats.wrong++;
+        setTimeout(() => nextPractice(), 500);
+        renderPractice(idx);
       }
-      function drawPractice(cw, ch, top) {
-        const areaY = top + 24;
-        const centerX = cw / 2;
-
-        if (practiceStats.finished) {
-          drawResultsScreen(cw, ch, top, "Üben fertig!", practiceStats, () =>
-            startPractice()
-          );
+      function renderPractice(chosenIdx) {
+        elPracticeFinished.style.display = pracStats.finished
+          ? "block"
+          : "none";
+        if (pracStats.finished) {
+          const acc =
+            pracStats.correct + pracStats.wrong > 0
+              ? Math.round(
+                  (100 * pracStats.correct) /
+                    (pracStats.correct + pracStats.wrong)
+                )
+              : 0;
+          elPracticeScore.textContent = `Üben fertig! Richtig: ${pracStats.correct} | Falsch: ${pracStats.wrong} | Trefferquote: ${acc}%`;
+          elPracticePrompt.textContent = "";
+          elPracticeChoices.innerHTML = "";
+          elPracticeProgress.textContent = "";
           return;
         }
-
-        const v = VOCAB[currentPractice.i];
-        const isDE = currentPractice.dir === "de2en";
-        const directionLabel = isDE ? "de → en" : "en → de";
-        const prompt = isDE ? v.de : v.en;
-
-        ctx.fillStyle = "#6b7280";
-        ctx.font =
-          "600 16px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-        ctx.fillText("Übersetze (" + directionLabel + ")", 24, areaY);
-
-        const maxW = Math.min(680, cw - 40);
-        const fontPrompt =
-          "700 40px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-        const lines = wrapLines(prompt, maxW, fontPrompt);
-        drawLinesCentered(
-          lines,
-          centerX,
-          areaY + 60,
-          46,
-          fontPrompt,
-          "#111827"
-        );
-
-        const optW = Math.min(580, cw - 40);
-        const optH = 72;
-        const startY = areaY + 60 + lines.length * 46 + 30;
-        const gap = 16;
-        for (let k = 0; k < practiceChoices.length; k++) {
-          const x = (cw - optW) / 2;
-          const y = startY + k * (optH + gap);
-          const label = practiceChoices[k];
-          let bg = "#ffffff",
-            border = "#e5e7eb",
-            text = "#111827";
-          if (practiceFeedback) {
-            if (k === practiceFeedback.correct) {
-              bg = "#ecfdf5";
-              border = "#10b981";
-            }
-            if (
-              k === practiceFeedback.chosen &&
-              k !== practiceFeedback.correct
-            ) {
-              bg = "#fef2f2";
-              border = "#ef4444";
-            }
+        const v = VOCAB[pracCurrent.i];
+        elPracticePrompt.textContent =
+          pracCurrent.dir === "de2en" ? v.de : v.en;
+        elPracticeChoices.innerHTML = "";
+        pracChoices.forEach((text, i) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "choice";
+          b.textContent = text;
+          b.addEventListener("click", () => answerPractice(i));
+          if (typeof chosenIdx === "number") {
+            if (i === pracCorrect) b.classList.add("correct");
+            if (i === chosenIdx && i !== pracCorrect) b.classList.add("wrong");
+            b.disabled = true;
           }
-          drawRoundedRect(x, y, optW, optH, 12);
-          ctx.fillStyle = bg;
-          ctx.fill();
-          ctx.strokeStyle = border;
-          ctx.lineWidth = 2;
-          ctx.stroke();
-
-          const inner = optW - 24;
-          const fontOpt =
-            "600 20px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-          const linesBtn = wrapLines(label, inner, fontOpt);
-          const lh = 26;
-          const startLy = y + (optH - lh * linesBtn.length) / 2 + 19;
-          drawLinesCentered(linesBtn, x + optW / 2, startLy, lh, fontOpt, text);
-
-          if (!practiceFeedback)
-            registerHitRegion({ x, y, w: optW, h: optH }, () =>
-              answerPractice(k)
-            );
-        }
-
-        drawProgressBar(cw, ch, top, practiceStats);
+          elPracticeChoices.appendChild(b);
+        });
+        elPracticeProgress.textContent = `Richtig: ${pracStats.correct}  |  Falsch: ${pracStats.wrong}`;
       }
+      elPracticeRestart.addEventListener("click", () => startPractice());
 
-      // ========================
-      // Test (Tippen: de -> en) – mit Umbruch beim Prompt
-      // ========================
-      function startTest() {
+      // Test (Freitext)
+      const elTestPrompt = document.getElementById("test-prompt");
+      const elTestInput = document.getElementById("test-input");
+      const elTestCheck = document.getElementById("btn-test-check");
+      const elTestFeedback = document.getElementById("test-feedback");
+      const elTestFinished = document.getElementById("test-finished");
+      const elTestScore = document.getElementById("test-score");
+      const elTestRestart = document.getElementById("btn-test-restart");
+      const elTestProgress = document.getElementById("test-progress");
+      let testQueue = [],
+        testCurrent = null,
         testStats = { asked: 0, correct: 0, wrong: 0, finished: false };
+      function startTest() {
         const idxs = [...Array(VOCAB.length).keys()];
         shuffle(idxs);
-        testQueue = idxs.map((i) => ({ i, tries: 0 }));
-        typed = "";
-        currentTest = null;
+        testQueue = idxs.map((i) => ({ i }));
+        testStats = { asked: 0, correct: 0, wrong: 0, finished: false };
+        elTestInput.value = "";
+        elTestInput.focus();
         nextTest();
       }
       function nextTest() {
-        testFeedback = null;
-        typed = "";
-        hiddenInput.value = "";
+        elTestFeedback.textContent = "";
+        elTestFeedback.style.color = "";
+        elTestInput.value = "";
         if (testQueue.length === 0) {
           testStats.finished = true;
-          renderSoon();
+          renderTest();
           return;
         }
-        currentTest = testQueue.shift();
+        testCurrent = testQueue.shift();
         testStats.asked++;
-        renderSoon();
+        renderTest();
+      }
+      function normalizeAnswer(s) {
+        return s.replace(/\s+/g, " ").trim().toLowerCase();
       }
       function checkTest() {
-        if (!currentTest || testFeedback) return;
-        const v = VOCAB[currentTest.i];
-        const expected = (v.en || "").trim().toLowerCase();
-        const given = (typed || hiddenInput.value || "").trim().toLowerCase();
-        const isCorrect = expected === given;
-        if (isCorrect) testStats.correct++;
-        else {
-          testStats.wrong++;
-          currentTest.tries++;
-          const offset = Math.min(
-            2 + Math.floor(Math.random() * 3),
-            testQueue.length
-          );
-          testQueue.splice(offset, 0, currentTest);
-        }
-        testFeedback = {
-          correct: isCorrect,
-          expected: v.en,
-          given: typed || hiddenInput.value,
-          when: performance.now(),
-        };
-        renderSoon();
-        setTimeout(() => {
-          nextTest();
-        }, 900);
+        if (!testCurrent || testStats.finished) return;
+        const v = VOCAB[testCurrent.i];
+        const expectedAlts = splitAlts(v.en).map(normalizeAnswer);
+        const given = normalizeAnswer(elTestInput.value || "");
+        const ok = expectedAlts.includes(given);
+        if (ok) testStats.correct++;
+        else testStats.wrong++;
+        elTestFeedback.textContent = ok
+          ? "Richtig!"
+          : `Falsch – korrekt: ${expectedAlts[0] || v.en}`;
+        elTestFeedback.style.color = ok ? "var(--ok)" : "var(--bad)";
+        setTimeout(() => nextTest(), 800);
       }
-      function drawTest(cw, ch, top) {
-        const areaY = top + 24;
-        const centerX = cw / 2;
-
+      function renderTest() {
+        elTestFinished.style.display = testStats.finished ? "block" : "none";
         if (testStats.finished) {
-          drawResultsScreen(cw, ch, top, "Test abgeschlossen!", testStats, () =>
-            startTest()
-          );
+          const acc =
+            testStats.correct + testStats.wrong > 0
+              ? Math.round(
+                  (100 * testStats.correct) /
+                    (testStats.correct + testStats.wrong)
+                )
+              : 0;
+          elTestScore.textContent = `Test abgeschlossen! Richtig: ${testStats.correct} | Falsch: ${testStats.wrong} | Trefferquote: ${acc}%`;
+          elTestPrompt.textContent = "";
+          elTestProgress.textContent = "";
           return;
         }
-
-        const v = VOCAB[currentTest.i];
-        const prompt = v.de;
-
-        ctx.fillStyle = "#6b7280";
-        ctx.font =
-          "600 16px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-        ctx.fillText("Schreibe die englische Übersetzung (de → en)", 24, areaY);
-
-        const maxW = Math.min(680, cw - 40);
-        const fontPrompt =
-          "700 40px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-        const lines = wrapLines(prompt, maxW, fontPrompt);
-        drawLinesCentered(
-          lines,
-          centerX,
-          areaY + 56,
-          46,
-          fontPrompt,
-          "#111827"
-        );
-
-        const boxW = Math.min(600, cw - 40);
-        const boxH = 64;
-        const boxX = (cw - boxW) / 2;
-        const boxY = areaY + 56 + lines.length * 46 + 24;
-        drawRoundedRect(boxX, boxY, boxW, boxH, 12);
-        ctx.fillStyle = "#ffffff";
-        ctx.fill();
-        ctx.strokeStyle = "#2563eb";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        const currentText = typed || hiddenInput.value || "";
-        ctx.fillStyle = "#111827";
-        ctx.font =
-          "600 22px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-        const tx = boxX + 16,
-          ty = boxY + 42;
-        ctx.fillText(currentText, tx, ty);
-
-        const caretX = tx + textWidth(currentText);
-        ctx.fillRect(caretX + 2, boxY + 20, 2, 26);
-
-        ctx.fillStyle = "#6b7280";
-        ctx.font =
-          "400 14px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-        ctx.fillText(
-          "Ins Feld tippen, um die Tastatur zu öffnen",
-          boxX,
-          boxY + boxH + 22
-        );
-
-        drawActionButton(
-          boxX,
-          boxY + boxH + 40,
-          140,
-          44,
-          "Prüfen (Enter)",
-          () => checkTest()
-        );
-
-        registerHitRegion({ x: boxX, y: boxY, w: boxW, h: boxH }, () =>
-          hiddenInput.focus()
-        );
-
-        if (testFeedback) {
-          const correct = testFeedback.correct;
-          const feedbackText = correct
-            ? "Richtig!"
-            : "Falsch – korrekt: " + testFeedback.expected;
-          const col = correct ? "#10b981" : "#ef4444";
-          ctx.fillStyle = col;
-          ctx.font =
-            "700 20px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-          const ftw = textWidth(feedbackText);
-          ctx.fillText(feedbackText, centerX - ftw / 2, boxY - 16);
-        }
-
-        drawProgressBar(cw, ch, top, testStats);
+        const v = VOCAB[testCurrent.i];
+        elTestPrompt.textContent = v.de;
+        elTestProgress.textContent = `Richtig: ${testStats.correct}  |  Falsch: ${testStats.wrong}`;
+        elTestInput.focus();
       }
-
-      // ========================
-      // Progress & Results
-      // ========================
-      function drawProgressBar(cw, ch, top, stats) {
-        const barW = Math.min(600, cw - 40);
-        const barH = 14;
-        const x = (cw - barW) / 2;
-        const y = ch - 60;
-        const done = stats.correct + stats.wrong;
-        const remaining =
-          mode === 2 ? practiceQueue.length : mode === 3 ? testQueue.length : 0;
-        const total = Math.max(1, done + remaining);
-        const p = done / total;
-
-        drawRoundedRect(x, y, barW, barH, 7);
-        ctx.fillStyle = "#e5e7eb";
-        ctx.fill();
-        drawRoundedRect(x, y, Math.max(6, barW * p), barH, 7);
-        ctx.fillStyle = "#2563eb";
-        ctx.fill();
-
-        const label = `Richtig: ${stats.correct}  |  Falsch: ${stats.wrong}`;
-        ctx.fillStyle = "#6b7280";
-        ctx.font =
-          "600 12px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-        const tw = textWidth(label);
-        ctx.fillText(label, x + (barW - tw) / 2, y - 8);
-      }
-      function drawResultsScreen(cw, ch, top, title, stats, onRestart) {
-        const centerX = cw / 2;
-        const y = top + 80;
-        ctx.fillStyle = "#111827";
-        ctx.font =
-          "700 28px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-        const tw = textWidth(title);
-        ctx.fillText(title, centerX - tw / 2, y);
-        const acc =
-          stats.correct + stats.wrong > 0
-            ? Math.round((100 * stats.correct) / (stats.correct + stats.wrong))
-            : 0;
-        ctx.fillStyle = "#374151";
-        ctx.font =
-          "600 18px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-        const line1 = `Richtig: ${stats.correct}   |   Falsch: ${stats.wrong}   |   Trefferquote: ${acc}%`;
-        const l1w = textWidth(line1);
-        ctx.fillText(line1, centerX - l1w / 2, y + 40);
-        drawActionButton(
-          centerX - 90,
-          y + 70,
-          180,
-          46,
-          "Nochmal starten",
-          onRestart
-        );
-      }
-
-      // ========================
-      // Shared UI
-      // ========================
-      function drawActionButton(x, y, w, h, label, onClick) {
-        drawRoundedRect(x, y, w, h, 10);
-        ctx.fillStyle = "#2563eb";
-        ctx.fill();
-        ctx.fillStyle = "#ffffff";
-        ctx.font =
-          "700 16px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-        const tw = textWidth(label);
-        ctx.fillText(label, x + (w - tw) / 2, y + 28);
-        registerHitRegion({ x, y, w, h }, onClick);
-      }
-
-      function setMode(m) {
-        mode = m;
-        if (m === 1) startLearn();
-        if (m === 2) startPractice();
-        if (m === 3) startTest();
-        renderSoon();
-      }
-      function reshuffleCurrentMode() {
-        if (mode === 1) startLearn();
-        if (mode === 2) startPractice();
-        if (mode === 3) startTest();
-        renderSoon();
-      }
-
-      // Rendering
-      function render() {
-        const cw = canvas.clientWidth,
-          ch = canvas.clientHeight;
-        ctx.clearRect(0, 0, cw, ch);
-        const top = drawTopBar(cw, ch);
-        if (mode === 1) {
-          drawLearn(cw, ch, top);
-        } else if (mode === 2) {
-          if (!currentPractice) startPractice();
-          drawPractice(cw, ch, top);
-        } else if (mode === 3) {
-          if (!currentTest) startTest();
-          drawTest(cw, ch, top);
-        }
-      }
-      let renderPending = false;
-      function renderSoon() {
-        if (renderPending) return;
-        renderPending = true;
-        requestAnimationFrame(() => {
-          renderPending = false;
-          render();
-        });
-      }
-
-      // Eingabe – Tippen (verstecktes Input)
-      hiddenInput.addEventListener("input", () => {
-        typed = hiddenInput.value;
-        renderSoon();
-      });
-      hiddenInput.addEventListener("keydown", (e) => {
+      elTestCheck.addEventListener("click", () => checkTest());
+      elTestInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
           checkTest();
         }
       });
+      elTestRestart.addEventListener("click", () => startTest());
 
-      // Start
-      resize();
-      setMode(1);
+      // Initial
+      setMode("learn");
+      startLearn();
     </script>
   </body>
 </html>
