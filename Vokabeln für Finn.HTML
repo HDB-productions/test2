@@ -535,6 +535,7 @@
       let testQueue = [],
         testCurrent = null,
         testStats = { asked: 0, correct: 0, wrong: 0, finished: false };
+      let testAdvanceTimeout = null;
       function startTest() {
         const idxs = [...Array(VOCAB.length).keys()];
         shuffle(idxs);
@@ -557,8 +558,9 @@
         testStats.asked++;
         renderTest();
       }
+      // Case-sensitive: nur Leerzeichen normalisieren, keine Kleinschreibung
       function normalizeAnswer(s) {
-        return s.replace(/\s+/g, " ").trim().toLowerCase();
+        return s.replace(/\s+/g, " ").trim();
       }
       function checkTest() {
         if (!testCurrent || testStats.finished) return;
@@ -572,7 +574,22 @@
           ? "Richtig!"
           : `Falsch – korrekt: ${expectedAlts[0] || v.en}`;
         elTestFeedback.style.color = ok ? "var(--ok)" : "var(--bad)";
-        setTimeout(() => nextTest(), 800);
+        const delay = ok ? 800 : 3000; // mehr Zeit bei falschen Antworten
+        if (testAdvanceTimeout) {
+          clearTimeout(testAdvanceTimeout);
+          testAdvanceTimeout = null;
+        }
+        testAdvanceTimeout = setTimeout(() => {
+          testAdvanceTimeout = null;
+          nextTest();
+        }, delay);
+      }
+      function skipAdvance() {
+        if (testAdvanceTimeout) {
+          clearTimeout(testAdvanceTimeout);
+          testAdvanceTimeout = null;
+          nextTest();
+        }
       }
       function renderTest() {
         elTestFinished.style.display = testStats.finished ? "block" : "none";
@@ -594,11 +611,26 @@
         elTestProgress.textContent = `Richtig: ${testStats.correct}  |  Falsch: ${testStats.wrong}`;
         elTestInput.focus();
       }
-      elTestCheck.addEventListener("click", () => checkTest());
+      elTestCheck.addEventListener("click", () => {
+        if (elTestFeedback.textContent) skipAdvance();
+        else checkTest();
+      });
       elTestInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
-          checkTest();
+          if (elTestFeedback.textContent) skipAdvance();
+          else checkTest();
+        }
+      });
+      // Klick in die Test-Ansicht nach Feedback: Wartezeit überspringen
+      document.addEventListener("click", (e) => {
+        const testView = document.getElementById("view-test");
+        if (
+          mode === "test" &&
+          elTestFeedback.textContent &&
+          testView.contains(e.target)
+        ) {
+          skipAdvance();
         }
       });
       elTestRestart.addEventListener("click", () => startTest());
