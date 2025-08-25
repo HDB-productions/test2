@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vokabeltrainer – Canvas</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #f6f7fb;
+      }
+      canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+      /* Unsichtbares Eingabefeld für iOS/Android, damit die Tastatur erscheint */
+      #hiddenInput {
+        position: absolute;
+        opacity: 0;
+        left: 0;
+        top: 0;
+        width: 1px;
+        height: 1px;
+        border: 0;
+        padding: 0;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <input
+      id="hiddenInput"
+      type="text"
+      autocapitalize="off"
+      autocomplete="off"
+      autocorrect="off"
+      spellcheck="false"
+    />
+    <canvas id="c"></canvas>
+    <script>
+      // ========================
+      // Daten – Liste aus deinen Fotos (de/en)
+      // ========================
+      const VOCAB = [
+        { de: "Hallo", en: "Hello" },
+        { de: "Ich heiße …", en: "My name is …" },
+        { de: "sein", en: "to be" },
+        { de: "Wie heißt du?; Wie heißen Sie?", en: "What's your name?" },
+        { de: "Hi.; Hallo.", en: "Hi" },
+        { de: "Ich bin …", en: "I'm …" },
+        {
+          de: "Woher kommst du/kommt ihr/kommen Sie?",
+          en: "Where are you from?",
+        },
+        { de: "Ich bin aus …", en: "I'm from …" },
+        { de: "aber", en: "but" },
+        { de: "Ich wohne in …", en: "I live in …" },
+        { de: "wohnen; leben", en: "to live" },
+        { de: "Wie alt bist du?; Wie alt sind Sie?", en: "How old are you?" },
+        { de: "Ich auch.", en: "Me too." },
+        { de: "Bis dann!; Bis …", en: "See you!" },
+        { de: "sehen", en: "to see" },
+        { de: "Tschüss!", en: "Bye!" },
+        { de: "neu", en: "new" },
+        { de: "Freund/-in", en: "friend" },
+        { de: "willkommen (in)", en: "welcome (to)" },
+        { de: "Was kannst du/könnt ihr hören?", en: "What can you hear?" },
+        { de: "hören", en: "to hear" },
+        { de: "der; die; das", en: "the" },
+        { de: "Ich kann …", en: "I can …" },
+        { de: "ein/-e", en: "a" },
+        { de: "Boot", en: "boat" },
+        { de: "Blume", en: "flower" },
+        { de: "Mädchen", en: "girl" },
+        { de: "auf; an; am; in; im", en: "on" },
+        { de: "Inlineskates; Rollschuhe; Schlittschuhe", en: "skates" },
+        { de: "Junge", en: "boy" },
+        { de: "Mutter", en: "mother" },
+        { de: "Vater", en: "father" },
+        { de: "Hund", en: "dog" },
+        { de: "Katze", en: "cat" },
+        { de: "Vogel", en: "bird" },
+        { de: "Schmetterling", en: "butterfly" },
+        { de: "Biene", en: "bee" },
+        { de: "Baum", en: "tree" },
+        { de: "Gras", en: "grass" },
+        { de: "Fahrrad", en: "bike" },
+        { de: "ein Picknick machen", en: "to have a picnic" },
+        { de: "lesen", en: "to read" },
+        { de: "Buch", en: "book" },
+        { de: "spielen", en: "to play" },
+        { de: "fahren; reiten", en: "to ride" },
+        { de: "reden mit", en: "to talk to" },
+      ];
+
+      // ========================
+      // Zufalls-/Queue-Logik
+      // ========================
+
+      const canvas = document.getElementById("c");
+      const ctx = canvas.getContext("2d");
+      const hiddenInput = document.getElementById("hiddenInput");
+
+      // Layout/State
+      let mode = 1; // 1=Lernen, 2=Üben (Multiple Choice), 3=Test (Tippen)
+      let hitRegions = []; // Klickbare Bereiche pro Frame
+
+      // Lernen
+      let learnIndices = [];
+      let learnPos = 0;
+
+      // Üben (MC)
+      let practiceQueue = [];
+      let currentPractice = null; // {i, dir, tries}
+      let practiceChoices = []; // Strings (3 Optionen)
+      let practiceCorrectIndex = -1;
+      let practiceFeedback = null; // {chosen, correct, when}
+      let practiceStats = { asked: 0, correct: 0, wrong: 0, finished: false };
+
+      // Test (Tippen: de -> en)
+      let testQueue = [];
+      let currentTest = null; // {i, tries}
+      let typed = "";
+      let testFeedback = null; // {correct, expected, given, when}
+      let testStats = { asked: 0, correct: 0, wrong: 0, finished: false };
+
+      // ========================
+      // Canvas Helpers + Textumbruch
+      // ========================
+
+      function resize() {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(window.innerWidth * dpr);
+        canvas.height = Math.floor(window.innerHeight * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        render();
+      }
+      window.addEventListener("resize", resize);
+
+      function shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      }
+      function textWidth(s, font) {
+        ctx.save();
+        if (font) ctx.font = font;
+        const w = ctx.measureText(s).width;
+        ctx.restore();
+        return w;
+      }
+      function drawRoundedRect(x, y, w, h, r) {
+        const rr = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rr, y);
+        ctx.arcTo(x + w, y, x + w, y + h, rr);
+        ctx.arcTo(x + w, y + h, x, y + h, rr);
+        ctx.arcTo(x, y + h, x, y, rr);
+        ctx.arcTo(x, y, x + w, y, rr);
+        ctx.closePath();
+      }
+      function registerHitRegion(rect, handler) {
+        hitRegions.push({
+          x: rect.x,
+          y: rect.y,
+          w: rect.w,
+          h: rect.h,
+          onClick: handler,
+        });
+      }
+      function pointInRect(px, py, rect) {
+        return (
+          px >= rect.x &&
+          px <= rect.x + rect.w &&
+          py >= rect.y &&
+          py <= rect.y + rect.h
+        );
+      }
+
+      // --- Text Wrap Utilities ---
+      function wrapLines(text, maxWidth, font) {
+        ctx.save();
+        ctx.font = font;
+        const words = (text + "").split(/\s+/);
+        const lines = [];
+        let line = "";
+        for (let n = 0; n < words.length; n++) {
+          const test = line ? line + " " + words[n] : words[n];
+          const w = ctx.measureText(test).width;
+          if (w > maxWidth && line) {
+            lines.push(line);
+            line = words[n];
+          } else {
+            line = test;
+          }
+        }
+        if (line) lines.push(line);
+        ctx.restore();
+        return lines;
+      }
+      function drawLinesCentered(
+        lines,
+        centerX,
+        startY,
+        lineHeight,
+        font,
+        color = "#111827"
+      ) {
+        ctx.save();
+        ctx.font = font;
+        ctx.fillStyle = color;
+        let y = startY;
+        for (const ln of lines) {
+          const w = ctx.measureText(ln).width;
+          ctx.fillText(ln, centerX - w / 2, y);
+          y += lineHeight;
+        }
+        ctx.restore();
+      }
+
+      // ========================
+      // Top-Bar
+      // ========================
+      canvas.addEventListener("click", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        for (let r of hitRegions) {
+          if (pointInRect(x, y, r)) {
+            r.onClick(x, y);
+            return;
+          }
+        }
+      });
+
+      function drawTopBar(cw, ch) {
+        hitRegions = [];
+        const barH = 56;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, cw, barH);
+        ctx.strokeStyle = "#e5e7eb";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, barH + 0.5);
+        ctx.lineTo(cw, barH + 0.5);
+        ctx.stroke();
+
+        ctx.fillStyle = "#111827";
+        ctx.font =
+          "600 18px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+        ctx.fillText("Vokabeltrainer", 16, 34);
+
+        const btnW = 100,
+          btnH = 32,
+          gap = 8;
+        const startX = 170;
+        const labels = [
+          { label: "Lernen", m: 1 },
+          { label: "Üben", m: 2 },
+          { label: "Test", m: 3 },
+        ];
+        let x = startX;
+        for (let b of labels) {
+          const isActive = mode === b.m;
+          const r = { x, y: 12, w: btnW, h: btnH };
+          drawRoundedRect(r.x, r.y, r.w, r.h, 8);
+          ctx.fillStyle = isActive ? "#2563eb" : "#e5e7eb";
+          ctx.fill();
+          ctx.fillStyle = isActive ? "#ffffff" : "#111827";
+          ctx.font =
+            "600 14px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+          const tw = textWidth(b.label);
+          ctx.fillText(b.label, r.x + (r.w - tw) / 2, r.y + 21);
+          registerHitRegion(r, () => setMode(b.m));
+          x += btnW + gap;
+        }
+
+        const resetLabel = "⟲ Neu mischen";
+        const resetW = Math.max(150, textWidth(resetLabel) + 24);
+        const resetRect = { x: cw - resetW - 16, y: 12, w: resetW, h: 32 };
+        drawRoundedRect(resetRect.x, resetRect.y, resetRect.w, resetRect.h, 8);
+        ctx.fillStyle = "#10b981";
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.font =
+          "600 14px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+        const ttw = textWidth(resetLabel);
+        ctx.fillText(
+          resetLabel,
+          resetRect.x + (resetRect.w - ttw) / 2,
+          resetRect.y + 21
+        );
+        registerHitRegion(resetRect, () => reshuffleCurrentMode());
+
+        return barH;
+      }
+
+      // ========================
+      // Lernmodus (mit Umbruch & Zentrierung)
+      // ========================
+      function startLearn() {
+        learnIndices = [...Array(VOCAB.length).keys()];
+        shuffle(learnIndices);
+        learnPos = 0;
+      }
+      function drawLearn(cw, ch, top) {
+        const areaY = top + 24;
+        const centerX = cw / 2;
+        const cardW = Math.min(620, cw - 40);
+        const cardH = 240;
+        const cardX = (cw - cardW) / 2;
+        const cardY = areaY + 40;
+
+        if (learnPos >= learnIndices.length) {
+          ctx.fillStyle = "#111827";
+          ctx.font =
+            "600 20px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+          ctx.fillText(
+            "Lernrunde abgeschlossen!",
+            centerX - textWidth("Lernrunde abgeschlossen!") / 2,
+            cardY - 8
+          );
+          drawActionButton(
+            centerX - 90,
+            cardY + 0,
+            180,
+            44,
+            "Nochmal lernen",
+            () => startLearn()
+          );
+          return;
+        }
+
+        const idx = learnIndices[learnPos];
+        const v = VOCAB[idx];
+
+        drawRoundedRect(cardX, cardY, cardW, cardH, 16);
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+        ctx.strokeStyle = "#e5e7eb";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = "#6b7280";
+        ctx.font =
+          "600 16px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+        ctx.fillText("Vokabel", cardX + 24, cardY + 34);
+
+        const innerW = cardW - 48;
+        const fontDE =
+          "700 34px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+        const fontEN =
+          "600 30px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+        const linesDE = wrapLines(v.de, innerW, fontDE);
+        const linesEN = wrapLines(v.en, innerW, fontEN);
+        const lhDE = 42,
+          lhEN = 38,
+          gap = 12;
+        const totalH = linesDE.length * lhDE + gap + linesEN.length * lhEN;
+        const startY = cardY + (cardH - totalH) / 2 + 20;
+
+        drawLinesCentered(linesDE, centerX, startY, lhDE, fontDE, "#111827");
+        drawLinesCentered(
+          linesEN,
+          centerX,
+          startY + linesDE.length * lhDE + gap,
+          lhEN,
+          fontEN,
+          "#1f2937"
+        );
+
+        drawActionButton(
+          centerX - 70,
+          cardY + cardH + 24,
+          140,
+          44,
+          "Weiter",
+          () => {
+            learnPos++;
+            renderSoon();
+          }
+        );
+      }
+
+      // ========================
+      // Üben (Multiple-Choice) – de<->en (mit Umbruch)
+      // ========================
+      function startPractice() {
+        practiceStats = { asked: 0, correct: 0, wrong: 0, finished: false };
+        const idxs = [...Array(VOCAB.length).keys()];
+        shuffle(idxs);
+        practiceQueue = idxs.map((i) => ({
+          i,
+          dir: Math.random() < 0.5 ? "de2en" : "en2de",
+          tries: 0,
+        }));
+        nextPractice();
+      }
+      function nextPractice() {
+        practiceFeedback = null;
+        if (practiceQueue.length === 0) {
+          practiceStats.finished = true;
+          renderSoon();
+          return;
+        }
+        currentPractice = practiceQueue.shift();
+        const v = VOCAB[currentPractice.i];
+        const dir = currentPractice.dir;
+
+        let correct, pool;
+        if (dir === "de2en") {
+          correct = v.en;
+          pool = VOCAB.map((x) => x.en);
+        } else {
+          correct = v.de;
+          pool = VOCAB.map((x) => x.de);
+        }
+
+        const options = new Set([correct]);
+        while (options.size < 3 && pool.length > 1) {
+          const cand = pool[Math.floor(Math.random() * pool.length)];
+          if (cand !== correct) options.add(cand);
+        }
+        practiceChoices = shuffle(Array.from(options));
+        practiceCorrectIndex = practiceChoices.indexOf(correct);
+        practiceStats.asked++;
+      }
+      function answerPractice(choiceIndex) {
+        if (practiceFeedback) return;
+        const isCorrect = choiceIndex === practiceCorrectIndex;
+        if (isCorrect) practiceStats.correct++;
+        else {
+          practiceStats.wrong++;
+          currentPractice.tries++;
+          const offset = Math.min(
+            2 + Math.floor(Math.random() * 3),
+            practiceQueue.length
+          );
+          practiceQueue.splice(offset, 0, currentPractice);
+        }
+        practiceFeedback = {
+          chosen: choiceIndex,
+          correct: practiceCorrectIndex,
+          when: performance.now(),
+        };
+        setTimeout(() => {
+          nextPractice();
+          renderSoon();
+        }, 750);
+        renderSoon();
+      }
+      function drawPractice(cw, ch, top) {
+        const areaY = top + 24;
+        const centerX = cw / 2;
+
+        if (practiceStats.finished) {
+          drawResultsScreen(cw, ch, top, "Üben fertig!", practiceStats, () =>
+            startPractice()
+          );
+          return;
+        }
+
+        const v = VOCAB[currentPractice.i];
+        const isDE = currentPractice.dir === "de2en";
+        const directionLabel = isDE ? "de → en" : "en → de";
+        const prompt = isDE ? v.de : v.en;
+
+        ctx.fillStyle = "#6b7280";
+        ctx.font =
+          "600 16px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+        ctx.fillText("Übersetze (" + directionLabel + ")", 24, areaY);
+
+        const maxW = Math.min(680, cw - 40);
+        const fontPrompt =
+          "700 40px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+        const lines = wrapLines(prompt, maxW, fontPrompt);
+        drawLinesCentered(
+          lines,
+          centerX,
+          areaY + 60,
+          46,
+          fontPrompt,
+          "#111827"
+        );
+
+        const optW = Math.min(580, cw - 40);
+        const optH = 72;
+        const startY = areaY + 60 + lines.length * 46 + 30;
+        const gap = 16;
+        for (let k = 0; k < practiceChoices.length; k++) {
+          const x = (cw - optW) / 2;
+          const y = startY + k * (optH + gap);
+          const label = practiceChoices[k];
+          let bg = "#ffffff",
+            border = "#e5e7eb",
+            text = "#111827";
+          if (practiceFeedback) {
+            if (k === practiceFeedback.correct) {
+              bg = "#ecfdf5";
+              border = "#10b981";
+            }
+            if (
+              k === practiceFeedback.chosen &&
+              k !== practiceFeedback.correct
+            ) {
+              bg = "#fef2f2";
+              border = "#ef4444";
+            }
+          }
+          drawRoundedRect(x, y, optW, optH, 12);
+          ctx.fillStyle = bg;
+          ctx.fill();
+          ctx.strokeStyle = border;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          const inner = optW - 24;
+          const fontOpt =
+            "600 20px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+          const linesBtn = wrapLines(label, inner, fontOpt);
+          const lh = 26;
+          const startLy = y + (optH - lh * linesBtn.length) / 2 + 19;
+          drawLinesCentered(linesBtn, x + optW / 2, startLy, lh, fontOpt, text);
+
+          if (!practiceFeedback)
+            registerHitRegion({ x, y, w: optW, h: optH }, () =>
+              answerPractice(k)
+            );
+        }
+
+        drawProgressBar(cw, ch, top, practiceStats);
+      }
+
+      // ========================
+      // Test (Tippen: de -> en) – mit Umbruch beim Prompt
+      // ========================
+      function startTest() {
+        testStats = { asked: 0, correct: 0, wrong: 0, finished: false };
+        const idxs = [...Array(VOCAB.length).keys()];
+        shuffle(idxs);
+        testQueue = idxs.map((i) => ({ i, tries: 0 }));
+        typed = "";
+        currentTest = null;
+        nextTest();
+      }
+      function nextTest() {
+        testFeedback = null;
+        typed = "";
+        hiddenInput.value = "";
+        if (testQueue.length === 0) {
+          testStats.finished = true;
+          renderSoon();
+          return;
+        }
+        currentTest = testQueue.shift();
+        testStats.asked++;
+        renderSoon();
+      }
+      function checkTest() {
+        if (!currentTest || testFeedback) return;
+        const v = VOCAB[currentTest.i];
+        const expected = (v.en || "").trim().toLowerCase();
+        const given = (typed || hiddenInput.value || "").trim().toLowerCase();
+        const isCorrect = expected === given;
+        if (isCorrect) testStats.correct++;
+        else {
+          testStats.wrong++;
+          currentTest.tries++;
+          const offset = Math.min(
+            2 + Math.floor(Math.random() * 3),
+            testQueue.length
+          );
+          testQueue.splice(offset, 0, currentTest);
+        }
+        testFeedback = {
+          correct: isCorrect,
+          expected: v.en,
+          given: typed || hiddenInput.value,
+          when: performance.now(),
+        };
+        renderSoon();
+        setTimeout(() => {
+          nextTest();
+        }, 900);
+      }
+      function drawTest(cw, ch, top) {
+        const areaY = top + 24;
+        const centerX = cw / 2;
+
+        if (testStats.finished) {
+          drawResultsScreen(cw, ch, top, "Test abgeschlossen!", testStats, () =>
+            startTest()
+          );
+          return;
+        }
+
+        const v = VOCAB[currentTest.i];
+        const prompt = v.de;
+
+        ctx.fillStyle = "#6b7280";
+        ctx.font =
+          "600 16px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+        ctx.fillText("Schreibe die englische Übersetzung (de → en)", 24, areaY);
+
+        const maxW = Math.min(680, cw - 40);
+        const fontPrompt =
+          "700 40px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+        const lines = wrapLines(prompt, maxW, fontPrompt);
+        drawLinesCentered(
+          lines,
+          centerX,
+          areaY + 56,
+          46,
+          fontPrompt,
+          "#111827"
+        );
+
+        const boxW = Math.min(600, cw - 40);
+        const boxH = 64;
+        const boxX = (cw - boxW) / 2;
+        const boxY = areaY + 56 + lines.length * 46 + 24;
+        drawRoundedRect(boxX, boxY, boxW, boxH, 12);
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+        ctx.strokeStyle = "#2563eb";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        const currentText = typed || hiddenInput.value || "";
+        ctx.fillStyle = "#111827";
+        ctx.font =
+          "600 22px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+        const tx = boxX + 16,
+          ty = boxY + 42;
+        ctx.fillText(currentText, tx, ty);
+
+        const caretX = tx + textWidth(currentText);
+        ctx.fillRect(caretX + 2, boxY + 20, 2, 26);
+
+        ctx.fillStyle = "#6b7280";
+        ctx.font =
+          "400 14px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+        ctx.fillText(
+          "Ins Feld tippen, um die Tastatur zu öffnen",
+          boxX,
+          boxY + boxH + 22
+        );
+
+        drawActionButton(
+          boxX,
+          boxY + boxH + 40,
+          140,
+          44,
+          "Prüfen (Enter)",
+          () => checkTest()
+        );
+
+        registerHitRegion({ x: boxX, y: boxY, w: boxW, h: boxH }, () =>
+          hiddenInput.focus()
+        );
+
+        if (testFeedback) {
+          const correct = testFeedback.correct;
+          const feedbackText = correct
+            ? "Richtig!"
+            : "Falsch – korrekt: " + testFeedback.expected;
+          const col = correct ? "#10b981" : "#ef4444";
+          ctx.fillStyle = col;
+          ctx.font =
+            "700 20px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+          const ftw = textWidth(feedbackText);
+          ctx.fillText(feedbackText, centerX - ftw / 2, boxY - 16);
+        }
+
+        drawProgressBar(cw, ch, top, testStats);
+      }
+
+      // ========================
+      // Progress & Results
+      // ========================
+      function drawProgressBar(cw, ch, top, stats) {
+        const barW = Math.min(600, cw - 40);
+        const barH = 14;
+        const x = (cw - barW) / 2;
+        const y = ch - 60;
+        const done = stats.correct + stats.wrong;
+        const remaining =
+          mode === 2 ? practiceQueue.length : mode === 3 ? testQueue.length : 0;
+        const total = Math.max(1, done + remaining);
+        const p = done / total;
+
+        drawRoundedRect(x, y, barW, barH, 7);
+        ctx.fillStyle = "#e5e7eb";
+        ctx.fill();
+        drawRoundedRect(x, y, Math.max(6, barW * p), barH, 7);
+        ctx.fillStyle = "#2563eb";
+        ctx.fill();
+
+        const label = `Richtig: ${stats.correct}  |  Falsch: ${stats.wrong}`;
+        ctx.fillStyle = "#6b7280";
+        ctx.font =
+          "600 12px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+        const tw = textWidth(label);
+        ctx.fillText(label, x + (barW - tw) / 2, y - 8);
+      }
+      function drawResultsScreen(cw, ch, top, title, stats, onRestart) {
+        const centerX = cw / 2;
+        const y = top + 80;
+        ctx.fillStyle = "#111827";
+        ctx.font =
+          "700 28px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+        const tw = textWidth(title);
+        ctx.fillText(title, centerX - tw / 2, y);
+        const acc =
+          stats.correct + stats.wrong > 0
+            ? Math.round((100 * stats.correct) / (stats.correct + stats.wrong))
+            : 0;
+        ctx.fillStyle = "#374151";
+        ctx.font =
+          "600 18px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+        const line1 = `Richtig: ${stats.correct}   |   Falsch: ${stats.wrong}   |   Trefferquote: ${acc}%`;
+        const l1w = textWidth(line1);
+        ctx.fillText(line1, centerX - l1w / 2, y + 40);
+        drawActionButton(
+          centerX - 90,
+          y + 70,
+          180,
+          46,
+          "Nochmal starten",
+          onRestart
+        );
+      }
+
+      // ========================
+      // Shared UI
+      // ========================
+      function drawActionButton(x, y, w, h, label, onClick) {
+        drawRoundedRect(x, y, w, h, 10);
+        ctx.fillStyle = "#2563eb";
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.font =
+          "700 16px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+        const tw = textWidth(label);
+        ctx.fillText(label, x + (w - tw) / 2, y + 28);
+        registerHitRegion({ x, y, w, h }, onClick);
+      }
+
+      function setMode(m) {
+        mode = m;
+        if (m === 1) startLearn();
+        if (m === 2) startPractice();
+        if (m === 3) startTest();
+        renderSoon();
+      }
+      function reshuffleCurrentMode() {
+        if (mode === 1) startLearn();
+        if (mode === 2) startPractice();
+        if (mode === 3) startTest();
+        renderSoon();
+      }
+
+      // Rendering
+      function render() {
+        const cw = canvas.clientWidth,
+          ch = canvas.clientHeight;
+        ctx.clearRect(0, 0, cw, ch);
+        const top = drawTopBar(cw, ch);
+        if (mode === 1) {
+          drawLearn(cw, ch, top);
+        } else if (mode === 2) {
+          if (!currentPractice) startPractice();
+          drawPractice(cw, ch, top);
+        } else if (mode === 3) {
+          if (!currentTest) startTest();
+          drawTest(cw, ch, top);
+        }
+      }
+      let renderPending = false;
+      function renderSoon() {
+        if (renderPending) return;
+        renderPending = true;
+        requestAnimationFrame(() => {
+          renderPending = false;
+          render();
+        });
+      }
+
+      // Eingabe – Tippen (verstecktes Input)
+      hiddenInput.addEventListener("input", () => {
+        typed = hiddenInput.value;
+        renderSoon();
+      });
+      hiddenInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          checkTest();
+        }
+      });
+
+      // Start
+      resize();
+      setMode(1);
+    </script>
+  </body>
+</html>
