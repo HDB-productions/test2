@@ -562,8 +562,10 @@
       function normalizeAnswer(s) {
         return s.replace(/\s+/g, " ").trim();
       }
+      let testFeedbackVisible = false;
       function checkTest() {
         if (!testCurrent || testStats.finished) return;
+        if (testFeedbackVisible) return; // Feedback schon sichtbar, nicht erneut prüfen
         const v = VOCAB[testCurrent.i];
         const expectedAlts = splitAlts(v.en).map(normalizeAnswer);
         const given = normalizeAnswer(elTestInput.value || "");
@@ -574,20 +576,24 @@
           ? "Richtig!"
           : `Falsch – korrekt: ${expectedAlts[0] || v.en}`;
         elTestFeedback.style.color = ok ? "var(--ok)" : "var(--bad)";
-        const delay = ok ? 800 : 3000; // mehr Zeit bei falschen Antworten
+        testFeedbackVisible = true;
+        const delay = ok ? 800 : 3000;
         if (testAdvanceTimeout) {
           clearTimeout(testAdvanceTimeout);
           testAdvanceTimeout = null;
         }
         testAdvanceTimeout = setTimeout(() => {
           testAdvanceTimeout = null;
-          nextTest();
+          skipAdvance();
         }, delay);
       }
       function skipAdvance() {
         if (testAdvanceTimeout) {
           clearTimeout(testAdvanceTimeout);
           testAdvanceTimeout = null;
+        }
+        if (testFeedbackVisible) {
+          testFeedbackVisible = false;
           nextTest();
         }
       }
@@ -610,16 +616,22 @@
         elTestPrompt.textContent = v.de;
         elTestProgress.textContent = `Richtig: ${testStats.correct}  |  Falsch: ${testStats.wrong}`;
         elTestInput.focus();
+        testFeedbackVisible = false;
       }
-      elTestCheck.addEventListener("click", () => {
-        if (elTestFeedback.textContent) skipAdvance();
-        else checkTest();
+      elTestCheck.addEventListener("click", (e) => {
+        // Beim ersten Klick Feedback zeigen und Click nicht hochbubblen
+        if (!testFeedbackVisible) {
+          checkTest();
+          e.stopPropagation();
+        } else {
+          skipAdvance();
+        }
       });
       elTestInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
-          if (elTestFeedback.textContent) skipAdvance();
-          else checkTest();
+          if (!testFeedbackVisible) checkTest();
+          else skipAdvance();
         }
       });
       // Klick in die Test-Ansicht nach Feedback: Wartezeit überspringen
