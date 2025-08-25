@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lineare Gleichung – Testseite</title>
+    <style>
+      :root {
+        --bg: #f6f7fb;
+        --card: #ffffff;
+        --txt: #1f2937;
+        --muted: #6b7280;
+        --accent: #2563eb;
+        --radius: 16px;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: var(--bg);
+        color: var(--txt);
+        font-family: system-ui, -apple-system, Segoe UI, Roboto,
+          "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
+          "Segoe UI Emoji", "Segoe UI Symbol";
+      }
+      .wrap {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      .card {
+        background: var(--card);
+        border-radius: var(--radius);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        padding: 20px;
+      }
+      h1 {
+        font-size: clamp(20px, 3vw, 28px);
+        margin: 0 0 16px;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      button {
+        border: 0;
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        background: var(--accent);
+        color: white;
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+        transition: transform 0.02s ease;
+      }
+      button:active {
+        transform: translateY(1px);
+      }
+      label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .eq {
+        font-size: clamp(22px, 4.6vw, 40px);
+        line-height: 1.25;
+        letter-spacing: 0.2px;
+        word-break: break-word;
+        margin: 6px 0 2px;
+        font-variant-numeric: tabular-nums;
+      }
+      .meta {
+        color: var(--muted);
+        font-size: 14px;
+        margin-top: 10px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .pill {
+        background: #f1f5f9;
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 14px;
+      }
+      .hidden {
+        display: none;
+      }
+      code {
+        background: #f1f5f9;
+        border-radius: 8px;
+        padding: 2px 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>Gleichungs-Generator: <code>a x + b = c ( d x + e )</code></h1>
+
+        <div class="controls">
+          <button id="btnNew">Neue Gleichung</button>
+          <label
+            ><input type="checkbox" id="chkSolution" /> Lösung anzeigen</label
+          >
+          <label
+            >Form:
+            <select id="formSelect">
+              <option value="auto">Zufällig</option>
+              <option value="1">ax + b = c(dx + e)</option>
+              <option value="2">ax = c(dx + e) - b</option>
+              <option value="3">(a/c)x + (b/c) = dx + e</option>
+            </select>
+          </label>
+          <label
+            ><input type="checkbox" id="chkSwap" checked /> Seiten zufällig
+            vertauschen</label
+          >
+        </div>
+
+        <div id="output">
+          <div class="eq" id="equation">Klicke auf „Neue Gleichung“.</div>
+          <div id="solution" class="meta hidden">
+            Lösung: <strong id="xval"></strong>
+          </div>
+
+          <div class="grid meta" id="params" aria-live="polite">
+            <!-- Parameter-Pills werden hier eingefügt -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // --- Hilfsfunktionen ---
+      const randInt = (min, max) =>
+        Math.floor(Math.random() * (max - min + 1)) + min;
+
+      function fmtAxPlusB(a, b) {
+        // a*x-Teil schön formatieren (1x -> x, -1x -> -x)
+        let ax = a === 1 ? "x" : a === -1 ? "-x" : `${a}x`;
+        // Sonderfall a = 0: nur b anzeigen
+        if (a === 0) ax = "";
+        const sign = b >= 0 ? " + " : " - ";
+        const bpart = Math.abs(b);
+        if (ax && b !== 0) return `${ax}${sign}${bpart}`;
+        if (ax && b === 0) return `${ax}`;
+        return `${b}`; // a == 0
+      }
+
+      function fmtParen(d, e) {
+        let dx = d === 1 ? "x" : d === -1 ? "-x" : `${d}x`;
+        if (d === 0) dx = ""; // (e) falls d=0
+        const sign = e >= 0 ? " + " : " - ";
+        const epart = Math.abs(e);
+        if (dx && e !== 0) return `(${dx}${sign}${epart})`;
+        if (dx && e === 0) return `(${dx})`;
+        return `(${e})`;
+      }
+
+      // Hauptgenerator: zieht a..e in [-10,10] und prüft, ob x ganzzahlig ist
+      function gcd(a, b) {
+        if (!b) return Math.abs(a);
+        return gcd(b, a % b);
+      }
+
+      function makeEquation({
+        min = -10,
+        max = 10,
+        form = "auto",
+        swapRandom = true,
+      } = {}) {
+        // form: 'auto' | 1 | 2 | 3
+        let attempts = 0;
+        while (attempts++ < 10000) {
+          const chosenForm = form === "auto" ? randInt(1, 3) : parseInt(form);
+          let a, b, c, d, e, x;
+          // Generiere Grundparameter für alle Formen gleich
+          a = randInt(min, max);
+          b = randInt(min, max);
+          c = randInt(min, max);
+          d = randInt(min, max);
+          e = randInt(min, max);
+          if (chosenForm === 3 && c === 0) continue; // Bruchform: Nenner c != 0
+          // Brüche kürzen und Bedingung prüfen
+          if (chosenForm === 3) {
+            let ga = gcd(a, c);
+            let gb = gcd(b, c);
+            // Kürzen
+            let aK = a / ga,
+              cK = c / ga;
+            let bK = b / gb,
+              cKb = c / gb;
+            // Wenn beide gekürzt ganzzahlig sind, überspringen
+            if (Number.isInteger(aK / cK) && Number.isInteger(bK / cKb))
+              continue;
+            // Für Anzeige und Rechnung: maximal kürzen
+            let gAll = gcd(gcd(a, b), c);
+            if (gAll > 1) {
+              a = a / gAll;
+              b = b / gAll;
+              c = c / gAll;
+            }
+          }
+          // Berechne x für alle Formen gleich (ax + b = c(dx + e))
+          const denom = chosenForm === 3 ? a / c - d : a - c * d;
+          if (denom === 0) continue;
+          const num = chosenForm === 3 ? e - b / c : c * e - b;
+          if (!Number.isInteger(num / denom)) continue;
+          x = num / denom;
+          // Anzeige-Funktionen je nach Form
+          let left, right;
+          if (chosenForm === 1) {
+            left = () => fmtAxPlusB(a, b);
+            right = () => c + fmtParen(d, e);
+          } else if (chosenForm === 2) {
+            left = () => fmtAxPlusB(a, 0); // ax
+            right = () =>
+              c + fmtParen(d, e) + (b >= 0 ? ` - ${b}` : ` + ${-b}`);
+          } else if (chosenForm === 3) {
+            left = () => {
+              const first = `${fmtFrac(a, c)}x`;
+              if (b === 0) return first;
+              const signBC = b / c >= 0 ? " + " : " - ";
+              const fracBC = fmtFrac(Math.abs(b), Math.abs(c)); // Bruch selbst positiv
+              return first + signBC + fracBC;
+            };
+            right = () => fmtAxPlusB(d, e);
+          }
+          // Seiten vertauschen?
+          let swap = swapRandom ? Math.random() < 0.5 : false;
+          let eqStr = swap
+            ? `${right()} = ${left()}`
+            : `${left()} = ${right()}`;
+          return { a, b, c, d, e, x, swapped: swap, form: chosenForm, eqStr };
+        }
+        throw new Error(
+          "Keine Gleichung im Versuchslimit gefunden. Range/Limit erhöhen."
+        );
+      }
+
+      // Hilfsfunktion für Brüche (maximal gekürzt, Vorzeichen vor dem Bruch)
+      function fmtFrac(num, den) {
+        if (den === 0) return "∞";
+        let sign = "";
+        if (num * den < 0) sign = "-";
+        num = Math.abs(num);
+        den = Math.abs(den);
+        const g = gcd(num, den);
+        if (g > 1) {
+          num = num / g;
+          den = den / g;
+        }
+        if (den === 1) return `${sign}${num}`;
+        return `${sign}<span style="display:inline-block;vertical-align:middle;">${num}<span style="border-top:1px solid #888;display:block;line-height:0.9;">${den}</span></span>`;
+      }
+
+      // --- UI-Logik ---
+      const btn = document.getElementById("btnNew");
+      const eqEl = document.getElementById("equation");
+      const solWrap = document.getElementById("solution");
+      const xVal = document.getElementById("xval");
+      const params = document.getElementById("params");
+      const chk = document.getElementById("chkSolution");
+      const formSelect = document.getElementById("formSelect");
+      const chkSwap = document.getElementById("chkSwap");
+
+      function pill(label, value) {
+        const div = document.createElement("div");
+        div.className = "pill";
+        div.textContent = `${label} = ${value}`;
+        return div;
+      }
+
+      function renderEquation() {
+        const eq = makeEquation({
+          form: formSelect.value,
+          swapRandom: chkSwap.checked,
+        });
+        eqEl.innerHTML = eq.eqStr;
+        xVal.textContent = eq.x;
+        solWrap.classList.toggle("hidden", !chk.checked);
+
+        // Parameter anzeigen
+        params.innerHTML = "";
+        params.appendChild(pill("Form", eq.form));
+        params.appendChild(pill("a", eq.a));
+        params.appendChild(pill("b", eq.b));
+        params.appendChild(pill("c", eq.c));
+        params.appendChild(pill("d", eq.d));
+        params.appendChild(pill("e", eq.e));
+        params.appendChild(pill("x", eq.x));
+        params.appendChild(
+          pill("Seiten vertauscht", eq.swapped ? "ja" : "nein")
+        );
+
+        // Für Debug/Neugier auch in der Konsole
+        console.log(eq);
+      }
+
+      // Events
+      btn.addEventListener("click", renderEquation);
+      chk.addEventListener("change", () => {
+        solWrap.classList.toggle("hidden", !chk.checked);
+      });
+      formSelect.addEventListener("change", renderEquation);
+      chkSwap.addEventListener("change", renderEquation);
+
+      // Optional: eine Startgleichung direkt erzeugen
+      renderEquation();
+    </script>
+  </body>
+</html>
