@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lineare Gleichung – Testseite</title>
+    <style>
+      :root {
+        --bg: #f6f7fb;
+        --card: #ffffff;
+        --txt: #1f2937;
+        --muted: #6b7280;
+        --accent: #2563eb;
+        --radius: 16px;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: var(--bg);
+        color: var(--txt);
+        font-family: system-ui, -apple-system, Segoe UI, Roboto,
+          "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
+          "Segoe UI Emoji", "Segoe UI Symbol";
+      }
+      .wrap {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      .card {
+        background: var(--card);
+        border-radius: var(--radius);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        padding: 20px;
+      }
+      h1 {
+        font-size: clamp(20px, 3vw, 28px);
+        margin: 0 0 16px;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      button {
+        border: 0;
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        background: var(--accent);
+        color: white;
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+        transition: transform 0.02s ease;
+      }
+      button:active {
+        transform: translateY(1px);
+      }
+      label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .eq {
+        font-size: clamp(22px, 4.6vw, 40px);
+        line-height: 1.25;
+        letter-spacing: 0.2px;
+        word-break: break-word;
+        margin: 6px 0 2px;
+        font-variant-numeric: tabular-nums;
+      }
+      .meta {
+        color: var(--muted);
+        font-size: 14px;
+        margin-top: 10px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .pill {
+        background: #f1f5f9;
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 14px;
+      }
+      .hidden {
+        display: none;
+      }
+      code {
+        background: #f1f5f9;
+        border-radius: 8px;
+        padding: 2px 6px;
+      }
+
+      /* Wasserzeichen-Overlay */
+      #wm {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 9999;
+        overflow: hidden;
+      }
+      #wm .tile {
+        position: absolute;
+        inset: -100vh -100vw; /* größer als Viewport, damit Rotation alles abdeckt */
+        transform: rotate(-28deg);
+        transform-origin: center center;
+        background-image: var(--wm-image);
+        background-repeat: repeat;
+        background-size: var(--wm-size, 340px 180px);
+        opacity: var(--wm-opacity, 0.1);
+        animation: wm-move 35s linear infinite;
+      }
+      @keyframes wm-move {
+        from {
+          background-position: 0 0;
+        }
+        to {
+          background-position: 340px 180px;
+        }
+      }
+
+      /* Name-Modal */
+      .name-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        display: flex;
+        .name-modal-overlay[hidden] {
+          display: none !important;
+        }
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+      }
+      .name-modal {
+        background: var(--card);
+        border-radius: 16px;
+        padding: 20px;
+        width: min(520px, 92vw);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+      }
+      .name-modal h2 {
+        margin: 0 0 6px;
+        font-size: clamp(18px, 3.2vw, 22px);
+      }
+      .name-modal .meta {
+        margin-top: 2px;
+      }
+      .name-modal .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-top: 12px;
+      }
+      .name-modal input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Wasserzeichen-Overlay -->
+    <div id="wm"><div class="tile"></div></div>
+
+    <!-- Name-Modal -->
+    <div id="nameModal" class="name-modal-overlay" hidden>
+      <div class="name-modal">
+        <h2>Bevor es losgeht: Dein Name</h2>
+        <p class="meta">
+          Bitte gib deinen Namen ein. Er erscheint zusammen mit Datum als
+          Wasserzeichen auf der Seite.
+        </p>
+        <input
+          id="nameInput"
+          type="text"
+          placeholder="Vor- und Nachname"
+          autocomplete="name"
+        />
+        <div class="row">
+          <button id="nameConfirm">Start</button>
+          <span
+            id="nameError"
+            class="meta"
+            style="color: #dc2626; display: none"
+            >Bitte einen gültigen Namen eingeben.</span
+          >
+        </div>
+      </div>
+    </div>
+    <div class="wrap">
+      <div class="card">
+        <h1>Übungsseite: 9 lineare Gleichungen</h1>
+
+        <div class="controls">
+          <button id="btnBatch" disabled>9 neue Aufgaben erzeugen</button>
+        </div>
+
+        <div id="tasks"></div>
+      </div>
+    </div>
+
+    <script>
+      // --- Hilfsfunktionen ---
+      const randInt = (min, max) =>
+        Math.floor(Math.random() * (max - min + 1)) + min;
+
+      function fmtAxPlusB(a, b) {
+        // a*x-Teil schön formatieren (1x -> x, -1x -> -x)
+        let ax = a === 1 ? "x" : a === -1 ? "-x" : `${a}x`;
+        // Sonderfall a = 0: nur b anzeigen
+        if (a === 0) ax = "";
+        const sign = b >= 0 ? " + " : " - ";
+        const bpart = Math.abs(b);
+        if (ax && b !== 0) return `${ax}${sign}${bpart}`;
+        if (ax && b === 0) return `${ax}`;
+        return `${b}`; // a == 0
+      }
+
+      function fmtParen(d, e) {
+        let dx = d === 1 ? "x" : d === -1 ? "-x" : `${d}x`;
+        if (d === 0) dx = ""; // (e) falls d=0
+        const sign = e >= 0 ? " + " : " - ";
+        const epart = Math.abs(e);
+        if (dx && e !== 0) return `(${dx}${sign}${epart})`;
+        if (dx && e === 0) return `(${dx})`;
+        return `(${e})`;
+      }
+
+      // Hauptgenerator: zieht a..e in [-10,10] und prüft, ob x ganzzahlig ist
+      function gcd(a, b) {
+        if (!b) return Math.abs(a);
+        return gcd(b, a % b);
+      }
+
+      function makeEquation({
+        min = -10,
+        max = 10,
+        form = "auto",
+        swapRandom = true,
+      } = {}) {
+        // form: 'auto' | 1 | 2 | 3
+        let attempts = 0;
+        while (attempts++ < 10000) {
+          const chosenForm = form === "auto" ? randInt(1, 3) : parseInt(form);
+          let a, b, c, d, e, x;
+          // Generiere Grundparameter für alle Formen gleich
+          a = randInt(min, max);
+          b = randInt(min, max);
+          c = randInt(min, max);
+          d = randInt(min, max);
+          e = randInt(min, max);
+          if (chosenForm === 3 && c === 0) continue; // Bruchform: Nenner c != 0
+          // Brüche kürzen und Bedingung prüfen
+          if (chosenForm === 3) {
+            let ga = gcd(a, c);
+            let gb = gcd(b, c);
+            // Kürzen
+            let aK = a / ga,
+              cK = c / ga;
+            let bK = b / gb,
+              cKb = c / gb;
+            // Wenn beide gekürzt ganzzahlig sind, überspringen
+            if (Number.isInteger(aK / cK) && Number.isInteger(bK / cKb))
+              continue;
+            // Für Anzeige und Rechnung: maximal kürzen
+            let gAll = gcd(gcd(a, b), c);
+            if (gAll > 1) {
+              a = a / gAll;
+              b = b / gAll;
+              c = c / gAll;
+            }
+          }
+          // Berechne x für alle Formen gleich (ax + b = c(dx + e))
+          const denom = chosenForm === 3 ? a / c - d : a - c * d;
+          if (denom === 0) continue;
+          const num = chosenForm === 3 ? e - b / c : c * e - b;
+          if (!Number.isInteger(num / denom)) continue;
+          x = num / denom;
+          // Anzeige-Funktionen je nach Form
+          let left, right;
+          if (chosenForm === 1) {
+            left = () => fmtAxPlusB(a, b);
+            right = () => c + fmtParen(d, e);
+          } else if (chosenForm === 2) {
+            left = () => fmtAxPlusB(a, 0); // ax
+            right = () =>
+              c + fmtParen(d, e) + (b >= 0 ? ` - ${b}` : ` + ${-b}`);
+          } else if (chosenForm === 3) {
+            left = () => {
+              const first = `${fmtFrac(a, c)}x`;
+              if (b === 0) return first;
+              const signBC = b / c >= 0 ? " + " : " - ";
+              const fracBC = fmtFrac(Math.abs(b), Math.abs(c)); // Bruch selbst positiv
+              return first + signBC + fracBC;
+            };
+            right = () => fmtAxPlusB(d, e);
+          }
+          // Seiten vertauschen?
+          let swap = swapRandom ? Math.random() < 0.5 : false;
+          let eqStr = swap
+            ? `${right()} = ${left()}`
+            : `${left()} = ${right()}`;
+          return { a, b, c, d, e, x, swapped: swap, form: chosenForm, eqStr };
+        }
+        throw new Error(
+          "Keine Gleichung im Versuchslimit gefunden. Range/Limit erhöhen."
+        );
+      }
+
+      // Hilfsfunktion für Brüche (maximal gekürzt, Vorzeichen vor dem Bruch)
+      function fmtFrac(num, den) {
+        if (den === 0) return "∞";
+        let sign = "";
+        if (num * den < 0) sign = "-";
+        num = Math.abs(num);
+        den = Math.abs(den);
+        const g = gcd(num, den);
+        if (g > 1) {
+          num = num / g;
+          den = den / g;
+        }
+        if (den === 1) return `${sign}${num}`;
+        return `${sign}<span style="display:inline-block;vertical-align:middle;">${num}<span style="border-top:1px solid #888;display:block;line-height:0.9;">${den}</span></span>`;
+      }
+
+      // --- UI-Logik für Übungsseite ---
+      const tasksEl = document.getElementById("tasks");
+      const btnBatch = document.getElementById("btnBatch");
+      const nameModal = document.getElementById("nameModal");
+      const nameInput = document.getElementById("nameInput");
+      const nameConfirm = document.getElementById("nameConfirm");
+      const nameError = document.getElementById("nameError");
+
+      // Serverzeit holen (Date-Header), Fallback: Clientzeit
+      async function getServerDate() {
+        try {
+          const res = await fetch(window.location.href, {
+            method: "HEAD",
+            cache: "no-cache",
+          });
+          const header = res.headers.get("Date");
+          if (header) return new Date(header);
+        } catch (e) {
+          /* ignore */
+        }
+        return new Date();
+      }
+
+      function formatDDMMYY(d) {
+        const dd = String(d.getDate()).padStart(2, "0");
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const yy = String(d.getFullYear()).slice(-2);
+        return `${dd}.${mm}.${yy}`;
+      }
+
+      function buildWatermark(text) {
+        const svg = `<?xml version="1.0" encoding="UTF-8"?><svg xmlns='http://www.w3.org/2000/svg' width='340' height='180'>
+<style>@font-face{font-family:system-ui;} text{font-family:Segoe UI,Roboto,Arial,sans-serif;}</style>
+<text x='10' y='60' fill='rgb(31,41,55)' fill-opacity='0.18' font-size='22'>${text}</text>
+<text x='10' y='140' fill='rgb(31,41,55)' fill-opacity='0.18' font-size='22'>${text}</text>
+</svg>`;
+        const enc = encodeURIComponent(svg);
+        return `url("data:image/svg+xml;utf8,${enc}")`;
+      }
+
+      async function initNameAndWatermark() {
+        // Vorbelegen aus localStorage (optional)
+        const stored = localStorage.getItem("studentName") || "";
+        if (stored) nameInput.value = stored;
+        nameModal.hidden = false; // sichtbar
+        nameModal.style.display = "flex";
+        setTimeout(() => nameInput.focus(), 0);
+
+        function validName(n) {
+          return n && n.trim().length >= 2;
+        }
+
+        async function confirm() {
+          const raw = nameInput.value || "";
+          if (!validName(raw)) {
+            nameError.style.display = "inline";
+            return;
+          }
+          nameError.style.display = "none";
+          // Modal sofort schließen, damit UI reagiert
+          nameModal.hidden = true;
+          nameModal.style.display = "none";
+          try {
+            const serverDate = await getServerDate();
+            const text = `#${raw.trim().toUpperCase()} ${formatDDMMYY(
+              serverDate
+            )}#`;
+            const cssUrl = buildWatermark(text);
+            // Sowohl CSS-Variable als auch inline setzen (failsafe)
+            document.documentElement.style.setProperty("--wm-image", cssUrl);
+            const tile = document.querySelector("#wm .tile");
+            if (tile) tile.style.backgroundImage = `var(--wm-image), ${cssUrl}`;
+          } catch (e) {
+            // Fallback ohne Datum
+            const text = `#${raw.trim().toUpperCase()}#`;
+            const cssUrl = buildWatermark(text);
+            document.documentElement.style.setProperty("--wm-image", cssUrl);
+            const tile = document.querySelector("#wm .tile");
+            if (tile) tile.style.backgroundImage = `var(--wm-image), ${cssUrl}`;
+          }
+          localStorage.setItem("studentName", raw.trim());
+          // Start erlauben (aber keine Aufgaben automatisch erzeugen)
+          btnBatch.disabled = false;
+        }
+
+        nameConfirm.addEventListener("click", confirm);
+        nameInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") confirm();
+        });
+      }
+
+      // Kleine Helfer
+      const shuffle = (arr) =>
+        arr
+          .map((v) => [Math.random(), v])
+          .sort((a, b) => a[0] - b[0])
+          .map(([, v]) => v);
+
+      function parseAnswer(raw) {
+        if (!raw) return null;
+        const s = String(raw)
+          .trim()
+          .replace(/^x\s*=\s*/i, "")
+          .replace(",", ".");
+        if (s === "") return null;
+        const n = Number(s);
+        return Number.isFinite(n) ? n : null;
+      }
+
+      function createTask(form) {
+        const eq = makeEquation({ form, swapRandom: true });
+
+        const task = document.createElement("div");
+        task.className = "task card";
+        task.style.marginBottom = "12px";
+
+        const eqDiv = document.createElement("div");
+        eqDiv.className = "eq";
+        eqDiv.innerHTML = eq.eqStr;
+
+        const row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.alignItems = "center";
+        row.style.gap = "8px";
+        row.style.marginTop = "6px";
+
+        const lbl = document.createElement("label");
+        lbl.textContent = "x =";
+        lbl.style.gap = "6px";
+        lbl.style.display = "flex";
+        lbl.style.alignItems = "center";
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.inputMode = "numeric";
+        input.placeholder = "Zahl eingeben";
+        input.style.padding = "8px 10px";
+        input.style.borderRadius = "8px";
+        input.style.border = "1px solid #cbd5e1";
+        input.style.minWidth = "120px";
+
+        const btnCheck = document.createElement("button");
+        btnCheck.textContent = "Prüfen";
+
+        const status = document.createElement("span");
+        status.className = "meta";
+        status.style.marginLeft = "8px";
+
+        const attempts = document.createElement("div");
+        attempts.className = "meta";
+        attempts.style.marginTop = "6px";
+
+        const list = document.createElement("ul");
+        list.style.margin = "6px 0 0";
+        list.style.paddingLeft = "18px";
+        attempts.appendChild(list);
+
+        function disable() {
+          input.disabled = true;
+          btnCheck.disabled = true;
+          input.style.opacity = "0.7";
+          btnCheck.style.opacity = "0.7";
+        }
+
+        function check() {
+          const val = parseAnswer(input.value);
+          if (val === null) {
+            status.textContent = " Bitte eine Zahl eingeben.";
+            status.style.color = "#b45309";
+            return;
+          }
+          if (val === eq.x) {
+            status.textContent = " Richtig!";
+            status.style.color = "#059669";
+            disable();
+          } else {
+            status.textContent = " Falsch, versuche es erneut.";
+            status.style.color = "#dc2626";
+            const li = document.createElement("li");
+            li.textContent = `x = ${val} (falsch)`;
+            li.style.color = "#dc2626";
+            list.appendChild(li);
+            // Eingabe bleibt stehen
+            input.focus();
+            input.select();
+          }
+        }
+
+        btnCheck.addEventListener("click", check);
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") check();
+        });
+
+        lbl.appendChild(input);
+        row.appendChild(lbl);
+        row.appendChild(btnCheck);
+        row.appendChild(status);
+
+        task.appendChild(eqDiv);
+        task.appendChild(row);
+        task.appendChild(attempts);
+
+        // Metadaten speichern (falls später benötigt)
+        task.dataset.solution = String(eq.x);
+        task.dataset.form = String(eq.form);
+
+        return task;
+      }
+
+      function freezeExistingTasks() {
+        tasksEl.querySelectorAll(".task").forEach((t) => {
+          const input = t.querySelector("input");
+          const btn = t.querySelector("button");
+          if (input && !input.disabled) {
+            input.disabled = true;
+            input.style.opacity = "0.7";
+          }
+          if (btn && !btn.disabled) {
+            btn.disabled = true;
+            btn.style.opacity = "0.7";
+          }
+        });
+      }
+
+      function addBatchOfNine() {
+        // 3 je Form
+        const forms = [1, 1, 1, 2, 2, 2, 3, 3, 3];
+        const shuffled = shuffle(forms);
+        const frag = document.createDocumentFragment();
+        shuffled.forEach((f) => {
+          frag.appendChild(createTask(f));
+        });
+        tasksEl.appendChild(frag);
+      }
+
+      btnBatch.addEventListener("click", () => {
+        freezeExistingTasks();
+        addBatchOfNine();
+      });
+
+      // Seite erst nach Namensabfrage starten
+      initNameAndWatermark();
+    </script>
+  </body>
+</html>
