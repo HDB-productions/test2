@@ -83,6 +83,7 @@
         background: var(--primary);
         color: #fff;
       }
+
       main {
         max-width: 840px;
         margin: 16px auto;
@@ -141,6 +142,7 @@
       .mt-24 {
         margin-top: 24px;
       }
+
       .choices {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -181,6 +183,84 @@
         font-size: 18px;
         font-weight: 600;
       }
+
+      /* Settings modal */
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.35);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        z-index: 50;
+      }
+      .modal {
+        width: min(920px, 100%);
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        max-height: 85vh;
+        overflow: auto;
+      }
+      .modal .header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .modal h2 {
+        margin: 0;
+        font-size: 18px;
+      }
+      .page-block {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px;
+        margin-top: 12px;
+      }
+      .page-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: space-between;
+      }
+      .pill {
+        font-size: 12px;
+        padding: 2px 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+      }
+      .vocab-grid {
+        margin-top: 10px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 8px;
+      }
+      .vocab-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border-radius: 8px;
+        border: 1px dashed var(--border);
+      }
+      .vocab-item small {
+        color: #6b7280;
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .muted {
+        color: #6b7280;
+        font-weight: 600;
+        font-size: 12px;
+      }
+
       @media (prefers-color-scheme: dark) {
         body {
           background: #0b1220;
@@ -206,6 +286,16 @@
           color: #e5e7eb;
           border-color: #334155;
         }
+        .modal {
+          background: #0f172a;
+          border-color: #1f2937;
+        }
+        .page-block {
+          border-color: #1f2937;
+        }
+        .vocab-item {
+          border-color: #1f2937;
+        }
       }
     </style>
   </head>
@@ -219,7 +309,11 @@
       </div>
       <div class="spacer"></div>
       <button id="btn-reshuffle" class="btn outline">⟲ Neu mischen</button>
+      <button id="btn-settings" class="btn outline" title="Vokabel-Auswahl">
+        ⚙️
+      </button>
     </header>
+
     <main>
       <section id="view-learn" class="view">
         <div class="card">
@@ -286,59 +380,315 @@
       </section>
     </main>
 
+    <!-- Settings modal -->
+    <div
+      id="modal-backdrop"
+      class="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settings-title"
+    >
+      <div class="modal">
+        <div class="header">
+          <h2 id="settings-title">Vokabel-Auswahl</h2>
+          <div class="spacer"></div>
+          <button id="btn-close-settings" class="btn">Schließen</button>
+        </div>
+        <div class="toolbar mt-12">
+          <button id="btn-select-all" class="btn">Alle auswählen</button>
+          <button id="btn-select-none" class="btn">Alle abwählen</button>
+          <span id="selection-counter" class="muted"></span>
+        </div>
+        <div id="settings-content" class="mt-12"></div>
+      </div>
+    </div>
+
     <script>
-      // Daten
-      const VOCAB = [
-        { de: "Hallo", en: "Hello" },
-        { de: "Ich heiße …", en: "My name is …" },
-        { de: "sein", en: "to be" },
-        { de: "Wie heißt du?; Wie heißen Sie?", en: "What's your name?" },
-        { de: "Hi.; Hallo.", en: "Hi" },
-        { de: "Ich bin …", en: "I'm …" },
-        {
-          de: "Woher kommst du/kommt ihr/kommen Sie?",
-          en: "Where are you from?",
-        },
-        { de: "Ich bin aus …", en: "I'm from …" },
-        { de: "aber", en: "but" },
-        { de: "Ich wohne in …", en: "I live in …" },
-        { de: "wohnen; leben", en: "to live" },
-        { de: "Wie alt bist du?; Wie alt sind Sie?", en: "How old are you?" },
-        { de: "Ich auch.", en: "Me too." },
-        { de: "Bis dann!; Bis …", en: "See you!" },
-        { de: "sehen", en: "to see" },
-        { de: "Tschüss!", en: "Bye!" },
-        { de: "neu", en: "new" },
-        { de: "Freund/-in", en: "friend" },
-        { de: "willkommen (in)", en: "welcome (to)" },
-        { de: "Was kannst du/könnt ihr hören?", en: "What can you hear?" },
-        { de: "hören", en: "to hear" },
-        { de: "der; die; das", en: "the" },
-        { de: "Ich kann …", en: "I can …" },
-        { de: "ein/-e", en: "a" },
-        { de: "Boot", en: "boat" },
-        { de: "Blume", en: "flower" },
-        { de: "Mädchen", en: "girl" },
-        { de: "auf; an; am; in; im", en: "on" },
-        { de: "Inlineskates; Rollschuhe; Schlittschuhe", en: "skates" },
-        { de: "Junge", en: "boy" },
-        { de: "Mutter", en: "mother" },
-        { de: "Vater", en: "father" },
-        { de: "Hund", en: "dog" },
-        { de: "Katze", en: "cat" },
-        { de: "Vogel", en: "bird" },
-        { de: "Schmetterling", en: "butterfly" },
-        { de: "Biene", en: "bee" },
-        { de: "Baum", en: "tree" },
-        { de: "Gras", en: "grass" },
-        { de: "Fahrrad", en: "bike" },
-        { de: "ein Picknick machen", en: "to have a picnic" },
-        { de: "lesen", en: "to read" },
-        { de: "Buch", en: "book" },
-        { de: "spielen", en: "to play" },
-        { de: "fahren; reiten", en: "to ride" },
-        { de: "reden mit", en: "to talk to" },
-      ];
+      // ======================
+      //   Datenmodell
+      // ======================
+
+      const PAGES = {
+        "S.170 - Hello!": [
+          { de: "Hallo", en: "Hello" },
+          { de: "Ich heiße …", en: "My name is …" },
+          { de: "sein", en: "to be" },
+          { de: "Wie heißt du?; Wie heißen Sie?", en: "What's your name?" },
+          { de: "Hi.; Hallo.", en: "Hi" },
+          { de: "Ich bin …", en: "I'm …" },
+          {
+            de: "Woher kommst du/kommt ihr/kommen Sie?",
+            en: "Where are you from?",
+          },
+          { de: "Ich bin aus …", en: "I'm from …" },
+          { de: "aber", en: "but" },
+          { de: "Ich wohne in …", en: "I live in …" },
+          { de: "wohnen; leben", en: "to live" },
+          { de: "Wie alt bist du?; Wie alt sind Sie?", en: "How old are you?" },
+          { de: "Ich auch.", en: "Me too." },
+          { de: "Bis dann!; Bis …", en: "See you!" },
+          { de: "sehen", en: "to see" },
+          { de: "Tschüss!", en: "Bye!" },
+          { de: "neu", en: "new" },
+          { de: "Freund/-in", en: "friend" },
+        ],
+        "S.171 - Welcome to London": [
+          { de: "willkommen (in)", en: "welcome (to)" },
+          { de: "Was kannst du/könnt ihr hören?", en: "What can you hear?" },
+          { de: "hören", en: "to hear" },
+          { de: "der; die; das", en: "the" },
+          { de: "Ich kann …", en: "I can …" },
+          { de: "ein/-e", en: "a" },
+          { de: "Boot", en: "boat" },
+          { de: "Blume", en: "flower" },
+          { de: "Mädchen", en: "girl" },
+          { de: "auf; an; am; in; im", en: "on" },
+          { de: "Inlineskates; Rollschuhe; Schlittschuhe", en: "skates" },
+          { de: "Junge", en: "boy" },
+          { de: "Mutter", en: "mother" },
+          { de: "Vater", en: "father" },
+          { de: "Hund", en: "dog" },
+          { de: "Katze", en: "cat" },
+          { de: "Vogel", en: "bird" },
+          { de: "Schmetterling", en: "butterfly" },
+          { de: "Biene", en: "bee" },
+          { de: "Baum", en: "tree" },
+          { de: "Gras", en: "grass" },
+          { de: "Fahrrad", en: "bike" },
+          { de: "ein Picknick machen", en: "to have a picnic" },
+          { de: "lesen", en: "to read" },
+          { de: "Buch", en: "book" },
+          { de: "spielen", en: "to play" },
+          { de: "fahren; reiten", en: "to ride" },
+          { de: "reden mit", en: "to talk to" },
+        ],
+        "S.176 - Tomorrow is the first day of school": [
+          // Tomorrow is the first day of school
+          { de: "Ding, Sache", en: "thing" },
+          { de: "Übungsheft", en: "exercise book" },
+          { de: "Leuchtstift", en: "marker" },
+          { de: "Füller", en: "pen" },
+          { de: "Bleistift, Buntstift", en: "pencil" },
+          { de: "Federmäppchen, Mäppchen", en: "pencil case" },
+          { de: "Radiergummi", en: "rubber" },
+          { de: "Lineal", en: "ruler" },
+          { de: "Schultasche", en: "schoolbag" },
+        ],
+        "S.176 - School things": [
+          { de: "Buch", en: "book" },
+          { de: "Heft", en: "exercise book" },
+          { de: "Leuchtstift", en: "marker" },
+          { de: "Kugelschreiber", en: "pen" },
+          { de: "Bleistift", en: "pencil" },
+          { de: "Mäppchen", en: "pencil case" },
+          { de: "Radiergummi", en: "rubber" },
+          { de: "Lineal", en: "ruler" },
+          { de: "Schultasche", en: "schoolbag" },
+          { de: "Kreide", en: "crayon" },
+          { de: "Schere", en: "scissors" },
+          { de: "Spitzer", en: "sharpener" },
+        ],
+        "S.176-177 Unit 1 A new school: Check in": [
+          { de: "Jahr, Schuljahr", en: "year" },
+          { de: "anschauen, ansehen", en: "to look at" },
+          { de: "uns", en: "us" },
+          { de: "schauen, sehen, aussehen", en: "to look" },
+          { de: "da drüben, dort drüben, nach dort drüben", en: "over there" },
+          { de: "nervös, aufgeregt", en: "nervous" },
+          { de: "Keine Sorge!", en: "Don't worry!" },
+          { de: "sitzen", en: "to sit" },
+          { de: "zusammen, miteinander, gemeinsam", en: "together" },
+          { de: "Sportplatz", en: "sports ground" },
+          { de: "warum", en: "why" },
+          { de: "Frau (Anrede)", en: "Mrs" },
+          { de: "Lehrer/in", en: "teacher" },
+          { de: "bitte", en: "please" },
+          {
+            de: "nehmen, mitnehmen, wegnehmen, bringen, mitbringen",
+            en: "to take",
+          },
+          { de: "nach Hause", en: "home" },
+          { de: "verrückt", en: "crazy" },
+          { de: "Schau!/Schaut mal!", en: "Look!" },
+          { de: "Das ist …", en: "That's ..." },
+          { de: "vor", en: "in front of" },
+          { de: "glücklich, froh, fröhlich", en: "happy" },
+          { de: "denken, nachdenken, glauben, finden, meinen", en: "to think" },
+          { de: "wütend, zornig, verärgert, böse", en: "angry" },
+          { de: "überrascht", en: "surprised" },
+          { de: "traurig", en: "sad" },
+          { de: "Uniform", en: "uniform" },
+          { de: "langweilig", en: "boring" },
+          { de: "hässlich", en: "ugly" },
+          { de: "dumm, doof, albern", en: "silly" },
+          { de: "suchen nach", en: "to look for" },
+          { de: "kein/-e", en: "no" },
+          { de: "heute", en: "today" },
+          { de: "Schlafzimmer", en: "bedroom" },
+          { de: "unter", en: "under" },
+          { de: "Bett", en: "bed" },
+        ],
+        "S.178-180 - Unit 1 A new school: Station 1": [
+          { de: "Guten Morgen.", en: "Good morning." },
+          { de: "Klassenlehrer/-in", en: "tutor" },
+          { de: "nein", en: "no" },
+          { de: "nicht", en: "not" },
+          { de: "freundlich; nett", en: "friendly" },
+          { de: "helfen", en: "to help" },
+          { de: "Frage", en: "question" },
+          { de: "Handbuch; Kalender", en: "planner" },
+          { de: "Stundenplan; Fahrplan", en: "timetable" },
+          { de: "Stadtplan; Landkarte", en: "map" },
+          { de: "Regel", en: "rule" },
+          {
+            de: "Komm(t) nicht zu spät zur Schule.",
+            en: "Don't be late for school.",
+          },
+          { de: "Unterrichtsstunde; Schulstunde; Unterricht", en: "lesson" },
+          { de: "streng; strikt", en: "strict" },
+          { de: "ein/-e", en: "an" },
+          { de: "Bibliothek; Bücherei", en: "library" },
+          { de: "Versammlung; Morgenappell", en: "assembly" },
+          { de: "Halle; Saal", en: "hall" },
+          { de: "Turnhalle", en: "gym" },
+          { de: "Aufnahmestudio; Tonstudio", en: "recording studio" },
+          { de: "zeigen", en: "to show" },
+          { de: "Tour; Fahrt; Rundgang", en: "tour" },
+          { de: "zu Mittag essen", en: "to have lunch" },
+          { de: "Cafeteria", en: "cafeteria" },
+          { de: "Entschuldigung!; Entschuldigen Sie!", en: "Excuse me ..." },
+          { de: "Kunst; Kunstunterricht", en: "art" },
+
+          // Fortsetzung Station 1 (S.179 oben)
+          { de: "Zimmer; Raum", en: "room" },
+          { de: "sagen; aufsagen; sprechen", en: "to say" },
+          { de: "da drüben; dort drüben; nach dort drüben", en: "there" },
+          { de: "Schüler/-in; Student/-in", en: "student" },
+          { de: "wollen; mögen", en: "to want (to)" },
+          { de: "Getränk", en: "drink" },
+          { de: "Klassenzimmer", en: "classroom" },
+
+          // Possessive determiners
+          { de: "mein/-e", en: "my" },
+          { de: "dein/-e", en: "your" },
+          { de: "sein", en: "his" },
+          { de: "ihr/-e", en: "her" },
+          { de: "sein/-e (von Dingen/Tieren)", en: "its" },
+          { de: "unser/-e", en: "our" },
+          { de: "euer/eure", en: "your" },
+          { de: "ihr/-e (Plural)", en: "their" },
+
+          // Station 1 – Abschnitt „What’s wrong?“ (S.179)
+          { de: "Was ist los?; Was stimmt nicht?", en: "What's wrong?" },
+          { de: "unheimlich; gruselig; beängstigend", en: "scary" },
+          { de: "alles", en: "everything" },
+          { de: "Mama", en: "mum" },
+          { de: "Eltern", en: "parents" },
+          { de: "geschieden", en: "divorced" },
+          { de: "allein; ohne fremde Hilfe", en: "alone" },
+          { de: "einfach; leicht", en: "easy" },
+          { de: "nach (zeitlich)", en: "after" },
+          { de: "Papa", en: "dad" },
+          { de: "recht haben", en: "to be right" },
+          { de: "Familie", en: "family" },
+          // Seite 180 – letzte Wörter
+          { de: "Wort", en: "word" },
+          { de: "Ort; Stelle; Platz", en: "place" },
+          { de: "Leute; Menschen", en: "people" },
+          { de: "schön; nett; lieb", en: "nice" },
+        ],
+        "S.180-181 - Unit 1 A new school: Station 2": [
+          { de: "da ist/sind; es gibt", en: "there is/are" },
+          { de: "Klasse; Schulklasse", en: "class" },
+          { de: "Medienzentrum", en: "media centre" },
+          { de: "Tisch", en: "table" },
+          { de: "Kopfhörer", en: "headphones" },
+          { de: "benutzen; verwenden; gebrauchen", en: "to use" },
+          { de: "Pause", en: "break" },
+          { de: "Steckdose", en: "power socket" },
+          { de: "Leseecke", en: "reading corner" },
+          { de: "Zeitung", en: "newspaper" },
+          { de: "Zeitschrift", en: "magazine" },
+          { de: "finden; herausfinden", en: "to find" },
+          { de: "Mann", en: "man" },
+          { de: "hinter", en: "behind" },
+          { de: "Infotheke", en: "information desk" },
+          { de: "schwarzes Brett", en: "noticeboard" },
+          { de: "neben", en: "next to" },
+          { de: "Tür", en: "door" },
+          { de: "Wand; Mauer", en: "wall" },
+          { de: "Stuhl", en: "chair" },
+          { de: "Uhr", en: "clock" },
+          { de: "Schreibtisch", en: "desk" },
+
+          // Station 2 – Freizeitbereich & Station 3 (Beginn)
+          { de: "Rutschbahn", en: "slide" },
+          { de: "Platz zum Chillen; Chill-Ecke", en: "chill-out area" },
+          { de: "Sofa; Couch", en: "sofa" },
+          { de: "Bildschirm", en: "screen" },
+          { de: "Sitz; Sitzplatz", en: "seat" },
+          { de: "Freiluftbereich", en: "outdoor area" },
+          { de: "Sonnenliege", en: "sun lounger" },
+          { de: "Roboter; Automat", en: "robot" },
+          { de: "Lampe; Leuchte", en: "lamp" },
+          { de: "VR-Brille", en: "VR goggles" },
+          { de: "viel/e; jede Menge", en: "lots of" },
+        ],
+        // Beispiel: weitere Seiten können später ergänzt werden
+        // "S.173": [],
+        // "S.174": [],
+      };
+
+      // interne IDs + Seitenlabel anreichern
+      function buildAllItems() {
+        const items = [];
+        for (const page of Object.keys(PAGES)) {
+          PAGES[page].forEach((v, idx) => {
+            items.push({
+              id: `${page}#${idx}`,
+              page,
+              de: v.de,
+              en: v.en,
+            });
+          });
+        }
+        return items;
+      }
+      const ALL_ITEMS = buildAllItems();
+
+      // Persistente Auswahl
+      const STORE_KEY = "vocabSelection_v1";
+      function loadSelection() {
+        const raw = localStorage.getItem(STORE_KEY);
+        if (!raw) {
+          // default: alles ausgewählt
+          const all = {};
+          for (const it of ALL_ITEMS) all[it.id] = true;
+          return all;
+        }
+        try {
+          return JSON.parse(raw) || {};
+        } catch {
+          return {};
+        }
+      }
+      function saveSelection(sel) {
+        localStorage.setItem(STORE_KEY, JSON.stringify(sel));
+      }
+      let selection = loadSelection();
+
+      function getActiveVocab() {
+        const chosen = ALL_ITEMS.filter((it) => selection[it.id]);
+        // Fallback: wenn nichts gewählt, nimm alles (und merke das)
+        if (chosen.length === 0) {
+          const all = {};
+          for (const it of ALL_ITEMS) all[it.id] = true;
+          selection = all;
+          saveSelection(selection);
+          return ALL_ITEMS.slice();
+        }
+        return chosen;
+      }
 
       // Utils
       function shuffle(a) {
@@ -355,11 +705,14 @@
           .filter(Boolean);
       }
 
-      // Tabs/Mode
+      // ======================
+      //   Tabs/Mode
+      // ======================
       const tabLearn = document.getElementById("tab-learn");
       const tabPractice = document.getElementById("tab-practice");
       const tabTest = document.getElementById("tab-test");
       const btnReshuffle = document.getElementById("btn-reshuffle");
+      const btnSettings = document.getElementById("btn-settings");
       const views = {
         learn: document.getElementById("view-learn"),
         practice: document.getElementById("view-practice"),
@@ -374,6 +727,7 @@
         tabLearn.classList.toggle("active", m === "learn");
         tabPractice.classList.toggle("active", m === "practice");
         tabTest.classList.toggle("active", m === "test");
+        // Warnen, falls keine Vokabeln (sollte durch Fallback nicht passieren)
       }
 
       tabLearn.addEventListener("click", () => {
@@ -394,16 +748,208 @@
         else startTest();
       });
 
-      // Learn
+      // ======================
+      //   Settings UI
+      // ======================
+      const modalBackdrop = document.getElementById("modal-backdrop");
+      const btnCloseSettings = document.getElementById("btn-close-settings");
+      const settingsContent = document.getElementById("settings-content");
+      const btnSelectAll = document.getElementById("btn-select-all");
+      const btnSelectNone = document.getElementById("btn-select-none");
+      const selectionCounter = document.getElementById("selection-counter");
+
+      function openSettings() {
+        renderSettings();
+        modalBackdrop.style.display = "flex";
+      }
+      function closeSettings() {
+        modalBackdrop.style.display = "none";
+      }
+
+      btnSettings.addEventListener("click", openSettings);
+      btnCloseSettings.addEventListener("click", () => {
+        closeSettings();
+        // Neustarten im aktuellen Modus mit neuer Auswahl
+        if (mode === "learn") startLearn();
+        else if (mode === "practice") startPractice();
+        else startTest();
+      });
+      modalBackdrop.addEventListener("click", (e) => {
+        if (e.target === modalBackdrop) btnCloseSettings.click();
+      });
+
+      btnSelectAll.addEventListener("click", () => {
+        for (const it of ALL_ITEMS) selection[it.id] = true;
+        saveSelection(selection);
+        renderSettings();
+      });
+      btnSelectNone.addEventListener("click", () => {
+        for (const it of ALL_ITEMS) selection[it.id] = false;
+        saveSelection(selection);
+        renderSettings();
+      });
+
+      function renderSettings() {
+        // Seiten -> Items gruppieren
+        const byPage = {};
+        ALL_ITEMS.forEach((it) => {
+          byPage[it.page] ||= [];
+          byPage[it.page].push(it);
+        });
+
+        settingsContent.innerHTML = "";
+        const totalSelected = ALL_ITEMS.filter((it) => selection[it.id]).length;
+        selectionCounter.textContent = `Ausgewählt: ${totalSelected} / ${ALL_ITEMS.length}`;
+
+        for (const page of Object.keys(byPage)) {
+          const items = byPage[page];
+          const selectedCount = items.filter((it) => selection[it.id]).length;
+          const allSelected = selectedCount === items.length;
+          const someSelected = selectedCount > 0 && !allSelected;
+
+          const block = document.createElement("div");
+          block.className = "page-block";
+
+          // ----- Kopfzeile (immer sichtbar)
+          const titleRow = document.createElement("div");
+          titleRow.className = "page-title";
+
+          const left = document.createElement("div");
+          left.style.display = "flex";
+          left.style.alignItems = "center";
+          left.style.gap = "8px";
+          left.style.cursor = "pointer"; // für Toggle
+
+          // Pfeil für Einzelliste
+          const arrow = document.createElement("span");
+          arrow.textContent = "►"; // zugeklappt
+          arrow.style.display = "inline-block";
+          arrow.style.transformOrigin = "center";
+          arrow.style.transition = "transform 0.2s";
+
+          const pageChk = document.createElement("input");
+          pageChk.type = "checkbox";
+          pageChk.checked = allSelected;
+          pageChk.indeterminate = someSelected;
+
+          const h3 = document.createElement("strong");
+          h3.textContent = page;
+
+          const pill = document.createElement("span");
+          pill.className = "pill";
+          pill.textContent = `${selectedCount}/${items.length} ausgewählt`;
+
+          left.appendChild(arrow);
+          left.appendChild(pageChk);
+          left.appendChild(h3);
+          titleRow.appendChild(left);
+          titleRow.appendChild(pill);
+
+          // Buttons rechts
+          const actions = document.createElement("div");
+          const btnPageAll = document.createElement("button");
+          btnPageAll.className = "btn";
+          btnPageAll.textContent = "Seite: alle";
+          const btnPageNone = document.createElement("button");
+          btnPageNone.className = "btn outline";
+          btnPageNone.textContent = "Seite: keine";
+          actions.appendChild(btnPageAll);
+          actions.appendChild(btnPageNone);
+          titleRow.appendChild(actions);
+
+          // ----- Einzelliste (ein-/ausklappbar)
+          const listWrap = document.createElement("div");
+          listWrap.style.overflow = "hidden";
+          listWrap.style.transition = "max-height 0.25s ease";
+          listWrap.style.maxHeight = "0"; // Start: zugeklappt
+
+          const grid = document.createElement("div");
+          grid.className = "vocab-grid";
+
+          items.forEach((it) => {
+            const row = document.createElement("label");
+            row.className = "vocab-item";
+
+            const c = document.createElement("input");
+            c.type = "checkbox";
+            c.checked = !!selection[it.id];
+            c.addEventListener("change", () => {
+              selection[it.id] = c.checked;
+              saveSelection(selection);
+              renderSettings(); // Zähler/Indeterminate aktualisieren
+            });
+
+            const text = document.createElement("div");
+            const main = document.createElement("div");
+            main.style.fontWeight = "700";
+            main.textContent = it.de;
+            const sub = document.createElement("small");
+            sub.textContent = `→ ${it.en} (${it.page})`;
+            text.appendChild(main);
+            text.appendChild(sub);
+
+            row.appendChild(c);
+            row.appendChild(text);
+            grid.appendChild(row);
+          });
+
+          listWrap.appendChild(grid);
+
+          // ----- Events
+          // Toggle: nur wenn NICHT auf Buttons geklickt wird
+          let open = false;
+          function setOpen(v) {
+            open = v;
+            arrow.style.transform = open ? "rotate(90deg)" : "rotate(0deg)";
+            // simple Auto-Höhe: grob hoch genug wählen
+            listWrap.style.maxHeight = open ? "800px" : "0";
+          }
+          left.addEventListener("click", (e) => {
+            // Klick auf Checkbox soll nicht doppelt toggeln
+            if (e.target === pageChk) return;
+            setOpen(!open);
+          });
+
+          pageChk.addEventListener("change", () => {
+            const val = pageChk.checked;
+            items.forEach((it) => (selection[it.id] = val));
+            saveSelection(selection);
+            renderSettings();
+          });
+          btnPageAll.addEventListener("click", () => {
+            items.forEach((it) => (selection[it.id] = true));
+            saveSelection(selection);
+            renderSettings();
+          });
+          btnPageNone.addEventListener("click", () => {
+            items.forEach((it) => (selection[it.id] = false));
+            saveSelection(selection);
+            renderSettings();
+          });
+
+          // ----- Zusammenbauen
+          block.appendChild(titleRow);
+          block.appendChild(listWrap);
+          settingsContent.appendChild(block);
+        }
+      }
+
+      // ======================
+      //   Lernen
+      // ======================
       const elLearnDE = document.getElementById("learn-de");
       const elLearnEN = document.getElementById("learn-en");
       const elLearnNext = document.getElementById("btn-learn-next");
       const elLearnFinished = document.getElementById("learn-finished");
       const elLearnRestart = document.getElementById("btn-learn-restart");
       let learnOrder = [],
-        learnIndex = 0;
+        learnIndex = 0,
+        LEARN_POOL = [];
+
       function startLearn() {
-        learnOrder = shuffle([...Array(VOCAB.length).keys()]);
+        LEARN_POOL = getActiveVocab();
+        const idxs = [...Array(LEARN_POOL.length).keys()];
+        learnOrder = shuffle(idxs);
         learnIndex = 0;
         renderLearn();
       }
@@ -415,7 +961,7 @@
           elLearnFinished.style.display = "block";
           return;
         }
-        const v = VOCAB[learnOrder[learnIndex]];
+        const v = LEARN_POOL[learnOrder[learnIndex]];
         elLearnDE.textContent = v.de;
         elLearnEN.textContent = v.en;
         elLearnFinished.style.display = "none";
@@ -429,7 +975,9 @@
         startLearn();
       });
 
-      // Practice (Multiple Choice)
+      // ======================
+      //   Üben (Multiple Choice)
+      // ======================
       const elPracticeDir = document.getElementById("practice-dir");
       const elPracticePrompt = document.getElementById("practice-prompt");
       const elPracticeChoices = document.getElementById("practice-choices");
@@ -437,14 +985,18 @@
       const elPracticeScore = document.getElementById("practice-score");
       const elPracticeRestart = document.getElementById("btn-practice-restart");
       const elPracticeProgress = document.getElementById("practice-progress");
-      let pracQueue = [],
+
+      let PRAC_POOL = [],
+        pracQueue = [],
         pracCurrent = null,
         pracChoices = [],
-        pracCorrect = -1,
-        pracStats = { asked: 0, correct: 0, wrong: 0, finished: false };
+        pracCorrect = -1;
+      let pracStats = { asked: 0, correct: 0, wrong: 0, finished: false };
+
       function startPractice() {
+        PRAC_POOL = getActiveVocab();
         pracStats = { asked: 0, correct: 0, wrong: 0, finished: false };
-        const idxs = [...Array(VOCAB.length).keys()];
+        const idxs = [...Array(PRAC_POOL.length).keys()];
         shuffle(idxs);
         pracQueue = idxs.map((i) => ({
           i,
@@ -459,13 +1011,15 @@
           return;
         }
         pracCurrent = pracQueue.shift();
-        const v = VOCAB[pracCurrent.i];
+        const v = PRAC_POOL[pracCurrent.i];
         const dir = pracCurrent.dir;
         elPracticeDir.textContent =
           dir === "de2en" ? "Übersetze (de → en)" : "Übersetze (en → de)";
         const correct = dir === "de2en" ? v.en : v.de;
         const pool =
-          dir === "de2en" ? VOCAB.map((x) => x.en) : VOCAB.map((x) => x.de);
+          dir === "de2en"
+            ? PRAC_POOL.map((x) => x.en)
+            : PRAC_POOL.map((x) => x.de);
         const options = new Set([correct]);
         while (options.size < 3 && pool.length > 1) {
           const cand = pool[Math.floor(Math.random() * pool.length)];
@@ -502,7 +1056,7 @@
           elPracticeProgress.textContent = "";
           return;
         }
-        const v = VOCAB[pracCurrent.i];
+        const v = PRAC_POOL[pracCurrent.i];
         elPracticePrompt.textContent =
           pracCurrent.dir === "de2en" ? v.de : v.en;
         elPracticeChoices.innerHTML = "";
@@ -523,7 +1077,9 @@
       }
       elPracticeRestart.addEventListener("click", () => startPractice());
 
-      // Test (Freitext)
+      // ======================
+      //   Test (Freitext)
+      // ======================
       const elTestPrompt = document.getElementById("test-prompt");
       const elTestInput = document.getElementById("test-input");
       const elTestCheck = document.getElementById("btn-test-check");
@@ -532,12 +1088,17 @@
       const elTestScore = document.getElementById("test-score");
       const elTestRestart = document.getElementById("btn-test-restart");
       const elTestProgress = document.getElementById("test-progress");
-      let testQueue = [],
-        testCurrent = null,
-        testStats = { asked: 0, correct: 0, wrong: 0, finished: false };
+
+      let TEST_POOL = [],
+        testQueue = [],
+        testCurrent = null;
+      let testStats = { asked: 0, correct: 0, wrong: 0, finished: false };
       let testAdvanceTimeout = null;
+      let testFeedbackVisible = false;
+
       function startTest() {
-        const idxs = [...Array(VOCAB.length).keys()];
+        TEST_POOL = getActiveVocab();
+        const idxs = [...Array(TEST_POOL.length).keys()];
         shuffle(idxs);
         testQueue = idxs.map((i) => ({ i }));
         testStats = { asked: 0, correct: 0, wrong: 0, finished: false };
@@ -558,15 +1119,12 @@
         testStats.asked++;
         renderTest();
       }
-      // Case-sensitive: nur Leerzeichen normalisieren, keine Kleinschreibung
       function normalizeAnswer(s) {
         return s.replace(/\s+/g, " ").trim();
       }
-      let testFeedbackVisible = false;
       function checkTest() {
-        if (!testCurrent || testStats.finished) return;
-        if (testFeedbackVisible) return; // Feedback schon sichtbar, nicht erneut prüfen
-        const v = VOCAB[testCurrent.i];
+        if (!testCurrent || testStats.finished || testFeedbackVisible) return;
+        const v = TEST_POOL[testCurrent.i];
         const expectedAlts = splitAlts(v.en).map(normalizeAnswer);
         const given = normalizeAnswer(elTestInput.value || "");
         const ok = expectedAlts.includes(given);
@@ -612,14 +1170,13 @@
           elTestProgress.textContent = "";
           return;
         }
-        const v = VOCAB[testCurrent.i];
+        const v = TEST_POOL[testCurrent.i];
         elTestPrompt.textContent = v.de;
         elTestProgress.textContent = `Richtig: ${testStats.correct}  |  Falsch: ${testStats.wrong}`;
         elTestInput.focus();
         testFeedbackVisible = false;
       }
       elTestCheck.addEventListener("click", (e) => {
-        // Beim ersten Klick Feedback zeigen und Click nicht hochbubblen
         if (!testFeedbackVisible) {
           checkTest();
           e.stopPropagation();
@@ -634,7 +1191,6 @@
           else skipAdvance();
         }
       });
-      // Klick in die Test-Ansicht nach Feedback: Wartezeit überspringen
       document.addEventListener("click", (e) => {
         const testView = document.getElementById("view-test");
         if (
